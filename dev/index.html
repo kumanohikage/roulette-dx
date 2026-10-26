@@ -533,11 +533,20 @@
   #panel { grid-area: panel; display: flex; flex-direction: column; min-height: 0; background: rgba(20,13,6,.95); border-left: 1px solid rgba(217,119,6,.35); transition: opacity .3s; }
   #panel, #panel * { touch-action: pan-y; }
   #panel input, #panel textarea { user-select: text; -webkit-user-select: text; touch-action: manipulation; }
-  .ptabs { display: flex; border-bottom: 1px solid rgba(217,119,6,.35); }
-  .ptabs button { flex: 1; padding: 10px 0; border: 0; border-bottom: 3px solid transparent; background: none; color: #c9b089 !important; }
-  .ptabs button[aria-selected="true"] { border-color: #ffd27a; color: #fff3d6 !important; }
-  #p-items, #p-set { display: flex; flex-direction: column; gap: 8px; padding: 12px; min-height: 0; flex: 1; }
-  #p-items[hidden], #p-set[hidden] { display: none; }
+  #panel { overflow-y: auto; overflow-x: hidden; scrollbar-width: thin; scrollbar-color: #6b5230 transparent; }
+  .pset, .pitems, .pfoot { display: flex; flex-direction: column; gap: 8px; padding: 12px; }
+  .pset { border-bottom: 1px solid rgba(217,119,6,.35); }
+  .pfoot { margin-top: auto; flex-direction: row; align-items: center; justify-content: space-between; border-top: 1px solid rgba(217,119,6,.2); }
+  .phead { display: flex; align-items: center; gap: 8px; }
+  .phead b { font-size: 14px; color: #fff3d6; }
+  .inrow { display: flex; gap: 6px; min-width: 0; }
+  .inrow input { flex: 1; min-width: 0; }
+  .ok { padding: 3px 10px; border-radius: 6px; border: 1px solid #ffd27a; background: #d98a00; color: #fff !important; font-size: 12px; white-space: nowrap; flex: none; }
+  .pbtn.go { background: #d98a00; border-color: #ffd27a; color: #fff !important; padding: 6px 14px; }
+  .addw #add { min-height: 0; }
+  .ptabs-unused { flex: 1; padding: 10px 0; border: 0; border-bottom: 3px solid transparent; background: none; color: #c9b089 !important; }
+  .ptabs-unused[aria-selected="true"] { border-color: #ffd27a; color: #fff3d6 !important; }
+
   .prow { display: flex; align-items: center; gap: 8px; }
   .pbtn { padding: 5px 12px; border-radius: 8px; border: 1px solid rgba(217,119,6,.5); background: none; }
   .pbtn.warn.armed { background: #9b2a12; border-color: #f08a72; }
@@ -545,7 +554,7 @@
   .sw { appearance: none; -webkit-appearance: none; width: 34px; height: 18px; border-radius: 99px; background: #3a2c1a; border: 1px solid #8a6a3a; position: relative; cursor: pointer; margin: 0; transition: background .2s; }
   .sw::after { content: ''; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: #c9b089; transition: left .2s; }
   .sw:checked { background: #d98a00; border-color: #ffd27a; } .sw:checked::after { left: 18px; background: #fff; }
-  #items { overflow-x: hidden !important; list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; overflow: auto; min-height: 0; flex: 1; scrollbar-width: thin; scrollbar-color: #6b5230 transparent; }
+  #items { overflow: visible; list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; scrollbar-width: thin; scrollbar-color: #6b5230 transparent; }
   .it { display: flex; align-items: center; gap: 8px; padding: 4px 6px 4px 8px; border-radius: 8px; border: 1px solid rgba(217,119,6,.3); background: rgba(255,255,255,.03); }
   .it.cur { border: 2px solid #ffd27a; padding: 3px 5px 3px 7px; background: rgba(255,210,122,.1); }
   .it.off { opacity: .45; }
@@ -568,8 +577,9 @@
   .th.hz { color: #a89070; }
   .th.hz:not(.on) .hzl { color: #8a7458; font-weight: 400; }
   .hzl { cursor: pointer; font-size: 14px; }
-  .ta { list-style: none; }
-  .add-t { width: 100%; resize: none; padding: 5px 8px; border-radius: 7px; border: 1px dashed rgba(217,119,6,.45); background: none; color: inherit; font: inherit; font-weight: 700; }
+  .ta { list-style: none; display: flex; gap: 6px; align-items: flex-start; }
+  .ta .add-t { flex: 1; }
+  .add-t { min-width: 0; resize: none; padding: 5px 8px; border-radius: 7px; border: 1px dashed rgba(217,119,6,.45); background: none; color: inherit; font: inherit; font-weight: 700; }
   .add-t:focus { outline: none; border-style: solid; border-color: #ffd27a; background: rgba(0,0,0,.2); }
   body.gacha #add { display: none; }
   .grip { cursor: grab; color: #8a7458; padding: 0 2px; letter-spacing: -3px; touch-action: none !important; user-select: none; flex: none; }
@@ -652,17 +662,19 @@
   </div>
   <div id="stagebox"></div>
   <aside id="panel">
-    <div class="ptabs" role="tablist"><button role="tab" data-p="items" aria-selected="true">候補</button><button role="tab" data-p="set" aria-selected="false">⚙ この組</button></div>
-    <section id="p-items">
-      <div class="prow"><button id="all-on" class="pbtn">全部乗せる</button><span class="sp"></span><label class="swl">当たったら外す <input type="checkbox" id="auto-off" class="sw"></label></div>
-      <ul id="items"></ul>
-      <div class="addw"><textarea id="add" rows="1" placeholder="＋ 候補を追加（改行でまとめて）" aria-label="候補を追加"></textarea><button id="add-go" class="pbtn" hidden>追加</button></div>
-    </section>
-    <section id="p-set" hidden>
-      <label class="kv"><span>名前</span><input id="set-name" type="text" maxlength="30"></label>
+    <section class="pset">
+      <div class="kv"><span>名前</span><span class="inrow"><input id="set-name" type="text" maxlength="30" aria-label="組の名前"><button class="ok" id="set-name-ok" hidden>決定</button></span></div>
       <div class="kv"><span>テーマ</span><div class="seg" id="theme-seg"><button data-v="treasure">宝</button><button data-v="shogi">将棋</button></div></div>
       <div class="kv"><span>モード</span><div class="seg" id="mode-seg"><button data-v="normal">ふつう</button><button data-v="gacha">ガチャ</button></div></div>
-      <div class="prow"><span class="sp"></span><button id="set-del" class="pbtn warn">この組を削除</button></div>
+    </section>
+    <section class="pitems">
+      <div class="phead"><b>候補</b><span class="sp"></span><label class="swl">当たったら外す <input type="checkbox" id="auto-off" class="sw"></label></div>
+      <div class="addw"><textarea id="add" rows="2" placeholder="候補を入力（改行でまとめて）" aria-label="候補を入力"></textarea><button id="add-go" class="pbtn go">登録</button></div>
+      <div class="prow"><button id="all-on" class="pbtn">全部乗せる</button></div>
+      <ul id="items"></ul>
+    </section>
+    <section class="pfoot">
+      <button id="set-del" class="pbtn warn">この組を削除</button>
       <div id="ver" class="ver"></div>
     </section>
   </aside>
@@ -3294,6 +3306,7 @@ function itemRow(set, name) {
   const nm = el('input', 'nm', { type: 'text', value: name, maxLength: 40 }); nm.setAttribute('aria-label', '候補の名前');
   li.append(grip, ck, nm);
   if (cur || (off && set.off[name] > 0)) li.appendChild(el('span', 'tag', { textContent: off && set.off[name] > 0 ? `${set.off[name]}回目` : 'いま' }));
+  li.appendChild(Object.assign(el('button', 'ok', { textContent: '決定' }), { hidden: true }));
   const del = el('button', 'del', { textContent: '✕', title: '削除' }); del.setAttribute('aria-label', `${name}を削除`);
   li.appendChild(del);
   return li;
@@ -3317,13 +3330,14 @@ function renderItems() {
     for (const k of [0, 1, 2]) {
       const th = el('li', 'th'); th.dataset.tier = k;
       const tn = el('input', 'tn', { type: 'text', value: set.tiers[k].name, maxLength: 12 }); tn.dataset.tier = k; tn.setAttribute('aria-label', '等級の名前');
-      th.append(el('i', 'dot'), tn, pctBox(set, k));
+      th.append(el('i', 'dot'), tn, pctBox(set, k), Object.assign(el('button', 'ok', { textContent: '決定' }), { hidden: true }));
       th.querySelector('.tp')?.setAttribute('data-tier', k);
       th.style.setProperty('--tc', TIER_COL[k]);
       ul.appendChild(th);
       for (const name of set.items) if (set.tierOf[name] === k) ul.appendChild(itemRow(set, name));
-      const add = el('textarea', 'add-t', { rows: 1, placeholder: '＋ 追加' }); add.dataset.tier = k; add.setAttribute('aria-label', `${set.tiers[k].name}に候補を追加`);
-      const li = el('li', 'ta'); li.appendChild(add); ul.appendChild(li);
+      const add = el('textarea', 'add-t', { rows: 1, placeholder: '候補を入力' }); add.dataset.tier = k; add.setAttribute('aria-label', `${set.tiers[k].name}の候補を入力`);
+      const go = el('button', 'pbtn go add-go-t', { textContent: '登録' }); go.dataset.tier = k;
+      const li = el('li', 'ta'); li.append(add, go); ul.appendChild(li);
     }
     const hz = el('li', `th hz${set.hazure.on ? ' on' : ''}`); hz.dataset.tier = 'h';
     const sw = el('input', 'sw', { type: 'checkbox', checked: set.hazure.on }); sw.id = 'hz-sw';
@@ -3401,8 +3415,13 @@ ul0.addEventListener('keydown', (e) => {
   else if (x.classList.contains('add-t') && (e.ctrlKey || e.metaKey)) { e.preventDefault(); const k = +x.dataset.tier; const v = x.value; x.value = ''; addItems(v, k); ul0.querySelector(`.add-t[data-tier="${k}"]`)?.focus(); }
 });
 ul0.addEventListener('input', (e) => { const x = e.target; if (x.classList.contains('add-t')) growAdd(x); });
-ul0.addEventListener('focusout', (e) => { const x = e.target; if (x.classList.contains('add-t') && x.value.trim()) { const v = x.value; x.value = ''; addItems(v, +x.dataset.tier); } });
-ul0.addEventListener('click', (e) => { const b = e.target.closest('.del'); if (b) removeItem(b.closest('.it').dataset.name); });
+// 書きかけの名前・確率の欄には「決定」を出す(押すと欄から離れて、変更が入る)
+ul0.addEventListener('input', (e) => { const x = e.target; if (x.matches('.nm, .tn, .tp')) x.closest('li')?.querySelector('.ok')?.removeAttribute('hidden'); });
+ul0.addEventListener('click', (e) => {
+  const b = e.target.closest('.del'); if (b) return removeItem(b.closest('.it').dataset.name);
+  const g = e.target.closest('.add-go-t');
+  if (g) { const x = g.parentElement.querySelector('.add-t'); const v = x.value; x.value = ''; addItems(v, +g.dataset.tier); ul0.querySelector(`.add-t[data-tier="${g.dataset.tier}"]`)?.focus(); }
+});
 
 // つまみで並べ替え(ガチャでは見出しをまたぐと等級が変わる)。マウスでも指でも
 ul0.addEventListener('pointerdown', (e) => {
@@ -3448,21 +3467,16 @@ ul0.addEventListener('pointerdown', (e) => {
 // 追加の欄(ふつう): Enter で足す。複数行を貼ったら1行ずつ候補に
 const add = $('add');
 // 行の数に合わせて欄を伸ばす(8行まで)
-const growAdd = (x) => { x.rows = Math.min(8, Math.max(1, x.value.split('\n').length)); };
-const flushAdd = () => { if (add.value.trim()) addItems(add.value); add.value = ''; growAdd(add); $('add-go').hidden = true; };
+const growAdd = (x) => { x.rows = Math.min(8, Math.max(x === add ? 2 : 1, x.value.split('\n').length)); };
+const flushAdd = () => { if (add.value.trim()) addItems(add.value); add.value = ''; growAdd(add); };
 add.addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && !e.isComposing) { e.preventDefault(); flushAdd(); } });
-add.addEventListener('input', () => { growAdd(add); $('add-go').hidden = !add.value.trim(); });
-add.addEventListener('blur', (e) => { if (e.relatedTarget !== $('add-go')) flushAdd(); });
+add.addEventListener('input', () => growAdd(add));
 $('add-go').addEventListener('click', flushAdd);
 $('all-on').addEventListener('click', () => { const set = curSet(); if (Object.keys(set.off).length) { set.off = {}; commit(); } });
 $('auto-off').addEventListener('change', (e) => { curSet().autoOff = e.target.checked; saveStore(); });
 
 /* ---------- パネルのタブ ---------- */
-document.querySelectorAll('.ptabs button').forEach((b) => b.addEventListener('click', () => {
-  document.querySelectorAll('.ptabs button').forEach((x) => x.setAttribute('aria-selected', String(x === b)));
-  $('p-items').hidden = b.dataset.p !== 'items';
-  $('p-set').hidden = b.dataset.p !== 'set';
-}));
+
 
 /* ---------- 組: 切り替え・新しく・名前・モード・複製・削除 ---------- */
 function renderSetBtn() { $('set-btn').textContent = `${curSet().name} ▾`; }
@@ -3504,11 +3518,12 @@ document.addEventListener('click', closePop);
 $('set-new').addEventListener('click', () => {
   const x = makeSet(TEMPLATES.empty());
   store.sets.push(x); switchSet(x.id);
-  document.querySelector('.ptabs [data-p="items"]').click();
   setTimeout(() => $('add').focus(), 50);
 });
 $('set-name').addEventListener('change', (e) => { const v = e.target.value.trim().slice(0, 30); if (!v) { e.target.value = curSet().name; return; } curSet().name = v; saveStore(); renderSetBtn(); refreshWheel(); });
 $('set-name').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.isComposing) e.target.blur(); });
+$('set-name').addEventListener('input', () => { $('set-name-ok').hidden = false; });
+$('set-name').addEventListener('blur', () => { $('set-name-ok').hidden = true; });
 $('theme-seg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b || curSet().theme === b.dataset.v) return; curSet().theme = b.dataset.v; saveStore(); renderSetPanel(); applyTheme(); });
 $('mode-seg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b || curSet().mode === b.dataset.v) return; curSet().mode = b.dataset.v; renderSetPanel(); commit(); });
 $('set-dup').addEventListener('click', () => {
@@ -3569,6 +3584,7 @@ window.addEventListener('keydown', (e) => {
 // ボタンにフォーカスが残ってSpaceで二重発火しないように
 document.querySelectorAll('button').forEach((b) => b.addEventListener('keydown', (e) => { const k = keyName(e); if (k === 'Space' || k === 'Enter') e.preventDefault(); }));
 window.addEventListener('resize', resize);
+document.fonts.addEventListener('loadingdone', () => refreshWheel());
 new ResizeObserver(() => resize()).observe($('stagebox'));
 // iOS Safari は viewport の拡大禁止を無視するため、ピンチとダブルタップ拡大を直接止める
 document.addEventListener('gesturestart', (e) => e.preventDefault());
