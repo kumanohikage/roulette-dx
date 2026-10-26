@@ -546,6 +546,10 @@
   .pfoot { margin-top: auto; flex-direction: row; align-items: center; justify-content: space-between; border-top: 1px solid rgba(217,119,6,.2); }
   .phead { display: flex; align-items: center; gap: 8px; }
   .phead b { font-size: 14px; color: #fff3d6; }
+  #lotsbox { position: absolute; inset: 0; z-index: 40; background: #0d0703; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  #lotsbox[hidden] { display: none; }
+  #lotsfx { width: 1920px; height: 1080px; border: 0; flex: none; transform: scale(var(--ls, 1)); pointer-events: none; }
+  .seg button:disabled { opacity: .4; cursor: default; }
   .imgrow { display: flex; gap: 10px; align-items: center; border-radius: 10px; }
   #img-cv { width: 72px; height: 72px; flex: none; border-radius: 50%; cursor: grab; touch-action: none !important; }
   .imgops { display: flex; flex-direction: column; gap: 6px; min-width: 0; flex: 1; }
@@ -664,6 +668,7 @@
   <div class="rbg"></div>
   <div id="result-text">配信継続！</div>
 </div>
+<div id="lotsbox" hidden><iframe id="lotsfx" title="封筒・あみだくじ" tabindex="-1"></iframe></div>
 <div id="flash"></div>
 </div>
 <div id="safe-probe"></div>
@@ -689,6 +694,7 @@
       <div class="kv"><span>名前</span><span class="inrow"><input id="set-name" type="text" maxlength="30" aria-label="組の名前"><button class="ok" id="set-name-ok" hidden>決定</button></span></div>
       <div class="kv"><span>画像</span><div class="imgrow" id="img-row"><canvas id="img-cv" width="144" height="144" title="ドラッグで位置・ホイールで拡大" aria-label="盤の真ん中の画像"></canvas><div class="imgops"><div class="r"><button id="img-pick" class="pbtn">画像を選ぶ</button><button id="img-clear" class="pbtn">外す</button></div><input type="range" id="img-zoom" min="1" max="4" step="0.01" value="1" aria-label="画像の拡大"></div></div></div>
       <input id="img-file" type="file" accept="image/*" hidden>
+      <div class="kv"><span>見せ方</span><div class="seg" id="view-seg"><button data-v="wheel">ルーレット</button><button data-v="envelope">封筒</button><button data-v="amida">あみだ</button></div></div>
     </section>
     <section class="pitems">
       <div class="phead"><b>候補</b><span class="sp"></span><label class="swl">当たったら外す <input type="checkbox" id="auto-off" class="sw"></label></div>
@@ -749,6 +755,7 @@ function normSet(x) {
   // ガチャ: 等級は3つ(上から)。確率は等級ごと。いちばん下の残りは自動(はずれをオンにしたら、はずれが残り)
   x.mode = 'normal';   // ガチャのモードはやめた(演出と合わないことがあるため)
   delete x.theme;
+  x.view = ['wheel', 'envelope', 'amida'].includes(x.view) ? x.view : 'wheel';
   x.image = typeof x.image === 'string' && x.image.startsWith('data:image/') ? x.image : '';
   x.crop = x.crop && typeof x.crop === 'object' ? { x: +x.crop.x || 0, y: +x.crop.y || 0, zoom: Math.min(4, Math.max(1, +x.crop.zoom || 1)) } : { x: 0, y: 0, zoom: 1 };
   const dt = defaultTiers();
@@ -2506,6 +2513,8 @@ async function startSpin() {
   // ===== 抽選(本体): ふつうは候補から一様に1つ、ガチャは確率の重みで1つ =====
   // ?preview(演出確認モード)のときだけ、パネルで選んだものを当たりにする
   const winner = PREVIEW ? previewWinner(n) : drawWinner(n);
+  const view = curSet().view;
+  if (view !== 'wheel' && n >= 2 && n <= 12) { await lotsFx(winner, view); return lotsEnd(winner); }
 
   // ===== ここから下は演出だけ。winner は二度と書き換えない =====
   const plan = planFor(winner, n);
@@ -2591,6 +2600,55 @@ async function startSpin() {
   }
   if (await runReach(plan, mode, entryIdx, landAngle, prelude, winner) === 'zenkai') await zenkaiten(mode, landAngle, winner, true);
   return finish(winner);
+}
+
+/* ---------------------------------------------------------------------
+ *  封筒・あみだくじ: 候補ごとに封筒(あみだの縦線)を1つ。順に開けて(たどって)、当たりが出たら決まる。
+ *  当たりは回す前に決まっている。開ける順番も暗号用の乱数で
+ * ------------------------------------------------------------------- */
+const CIRCLED = '①②③④⑤⑥⑦⑧⑨⑩⑪⑫';
+// あみだくじの横線(ドラフト会議アプリと同じ作り)。となり合う縦線の間には横線が2本以上
+function amidaRungs(n, rng) {
+  const rows = Math.max(4, n + 2), rungs = [];
+  for (let r = 0; r < rows; r++) { const row = []; for (let i = 0; i < n - 1; i++) if (rng() < 0.45 && !row.includes(i - 1)) row.push(i); if (!row.length && n > 1) row.push(Math.floor(rng() * (n - 1))); rungs.push(row); }
+  const free = (row, i) => !row.includes(i) && !row.includes(i - 1) && !row.includes(i + 1);
+  for (let i = 0; i < n - 1; i++) {
+    let have = rungs.filter((row) => row.includes(i)).length;
+    for (let k = 0; have < 2 && k < rows * 2; k++) { const row = rungs[Math.floor(rng() * rows)]; if (free(row, i)) { row.push(i); have++; } }
+    for (let r = 0; have < 2 && r < rungs.length; r++) if (free(rungs[r], i)) { rungs[r].push(i); have++; }
+    while (have < 2) { rungs.splice(Math.floor(rng() * (rungs.length + 1)), 0, [i]); have++; }
+  }
+  rungs.forEach((row) => row.sort((a, b) => a - b));
+  return rungs;
+}
+// 横線をたどって、lane から下りた先の縦線
+function amidaEnd(rungs, lane) { let x = lane; for (const row of rungs) { if (row.includes(x)) x++; else if (row.includes(x - 1)) x--; } return x; }
+// あみだは「どの縦線を選ぶと当たりにたどり着くか」。当たりのゴールが当たりの候補の縦線から下りた先になるよう、横線を引いてから決める
+let lotsReady = null, lotsDone = null, lotsId = 0;
+function lotsFrame() {
+  const f = $('lotsfx');
+  if (!lotsReady) lotsReady = new Promise((r) => {
+    addEventListener('message', function on(e) { if (e.source === f.contentWindow && (e.data || {}).type === 'lots3d-ready') { removeEventListener('message', on); r(); } });
+    f.src = 'lots3d.html';
+  });
+  return lotsReady;
+}
+addEventListener('message', (e) => { const m = e.data || {}; if (m.type === 'lots3d-done' && lotsDone && m.id === lotsId) { const r = lotsDone; lotsDone = null; r(); } });
+async function lotsFx(winner, mode) {
+  const n = draft.leaders.length, f = $('lotsfx');
+  $('lotsbox').hidden = false;
+  await lotsFrame();
+  const order = [...Array(n).keys()];
+  for (let i = n - 1; i > 0; i--) { const j = fairInt(i + 1); [order[i], order[j]] = [order[j], order[i]]; }
+  const d = { id: ++lotsId, mode, lots: draft.leaders.map((nm, i) => ({ color: leaderColor(i), label: CIRCLED[i], name: nm })), owners: [...draft.leaders], order, winLot: winner, opened: order.indexOf(winner) + 1, done: false, player: { name: draft.pick } };
+  if (mode === 'amida') { const rungs = amidaRungs(n, Math.random); d.amida = { rungs, goal: amidaEnd(rungs, winner) }; }
+  f.contentWindow.postMessage({ type: 'silence', on: !sound.enabled }, '*');
+  await new Promise((r) => { lotsDone = r; f.contentWindow.postMessage({ type: 'lots', data: d }, '*'); });
+}
+function lotsEnd(winner) {
+  showResult(winner);
+  isSpinning = false;
+  document.body.classList.remove('spinning');
 }
 
 /* ---------------------------------------------------------------------
@@ -3280,6 +3338,7 @@ function showResult(winner) {
 function closeResult() {
   const res = $('result');
   if (!res.classList.contains('show')) return;
+  if (!$('lotsbox').hidden) { $('lotsbox').hidden = true; $('lotsfx').contentWindow?.postMessage({ type: 'lots-reset' }, '*'); }
   evalHide();
   res.classList.remove('show');
   document.body.classList.remove('result-open');
@@ -3549,6 +3608,7 @@ function layoutStage() {
   const x = Math.round(box.left) + Math.floor((ww - w) / 2), y = Math.round(box.top) + Math.floor((wh - h) / 2);
   st.style.width = `${sw}px`; st.style.height = `${sh}px`;
   st.style.setProperty('--vw', `${sw / 100}px`); st.style.setProperty('--vh', `${sh / 100}px`);
+  st.style.setProperty('--ls', Math.min(1, sw / 1920, sh / 1080).toFixed(4));
   st.style.transform = `translate(${x}px, ${y}px) scale(${sc})`;
   Object.assign(canvas.style, { left: `${x}px`, top: `${y}px`, width: `${w}px`, height: `${h}px` });
   document.body.classList.toggle('vertical', vertical);
@@ -3600,7 +3660,7 @@ function applyBackdrop() {
   savePass.enabled = alphaPass.enabled = isGreen || isTransparent;
 }
 applyBackdrop();
-$('btn-sound').addEventListener('click', () => { sound.enabled = !sound.enabled; $('btn-sound').textContent = sound.enabled ? '🔊' : '🔇'; });
+$('btn-sound').addEventListener('click', () => { sound.enabled = !sound.enabled; $('btn-sound').textContent = sound.enabled ? '🔊' : '🔇'; $('lotsfx').contentWindow?.postMessage({ type: 'silence', on: !sound.enabled }, '*'); });
 $('btn-spin2').addEventListener('click', startSpin);
 /* ---------- 重さの診断: ブラウザ側の設定で重くなっているときだけ、直し方を出す(画質は下げない) ---------- */
 function checkPerf() {
@@ -3742,7 +3802,7 @@ function refreshWheel(now = false) {
   };
   if (now) go(); else wheelTimer = setTimeout(go, 120);
 }
-function commit(wheel = true) { saveStore(); renderItems(); if (wheel) refreshWheel(); }
+function commit(wheel = true) { saveStore(); renderItems(); renderSetPanel(); if (wheel) refreshWheel(); }
 
 const el = (tag, cls, props = {}) => Object.assign(document.createElement(tag), cls ? { className: cls } : {}, props);
 function itemRow(set, name) {
@@ -3933,6 +3993,12 @@ function renderSetPanel() {
   $('set-name').value = set.name;
   $('set-del').disabled = store.sets.length < 2;
   $('set-del').setAttribute('aria-disabled', String(store.sets.length < 2));
+  // 封筒・あみだは 2〜12 個のとき(封筒の番号が ⑫ まで)
+  const n = activeItems(set).length, ok = n >= 2 && n <= 12;
+  $('view-seg').querySelectorAll('button').forEach((b) => {
+    b.setAttribute('aria-pressed', String(b.dataset.v === set.view));
+    const off = b.dataset.v !== 'wheel' && !ok; b.disabled = off; b.setAttribute('aria-disabled', String(off));
+  });
   disarmDel();
 }
 // 組を切り替えたとき: 一覧・盤・隠した状態をその組のものに
@@ -4087,6 +4153,8 @@ $('img-zoom').addEventListener('input', (e) => { curSet().crop.zoom = +e.target.
     if (it) { e.preventDefault(); takeImage(it.getAsFile()); }
   });
 }
+
+$('view-seg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b || b.disabled || curSet().view === b.dataset.v) return; curSet().view = b.dataset.v; saveStore(); renderSetPanel(); });
 
 /* ---------- 道具: 全画面・隠す ---------- */
 function toggleFull() {
