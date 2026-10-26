@@ -812,8 +812,8 @@ function frame() {
   fx.heatNow += (fx.heat - fx.heatNow) * k(2);
   // 封筒は板(縁の光)がないぶん暗く見えるので、背景の光を少し強く。露出は上げない(上げると白っぽく色が薄くなる)。かわりに色を少し濃く
   const env = world && world.mode !== 'amida';
-  bgU.uGlow.value = 0.4 + 0.6 * Math.min(1, fx.amb / 3.4) + fx.heatNow * 0.22 + (env ? 0.3 : 0);
-  bgU.uSat.value = env ? 1.3 : 1;
+  bgU.uGlow.value = 0.4 + 0.6 * Math.min(1, fx.amb / 3.4) + fx.heatNow * 0.22;
+  bgU.uSat.value = 1;   // ルーレット・あみだと同じ色に揃える
   tierLight.intensity = fx.win * 4; tierLight.color.setHSL((t * 0.4) % 1, 1, 0.6);
   bloom.strength = 0.45 + fx.win * 0.45;
   // カメラ(時間あたり一定の減衰でついていく。回さない)
