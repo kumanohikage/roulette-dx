@@ -46,7 +46,7 @@
   html.transparent, html.transparent body { background: transparent; }
   /* 舞台: 16:9 / 9:16 の比率を保ったまま窓に合わせて拡大縮小。余りは黒帯(グリーンバック時は緑) */
   #gl { position: fixed; left: 0; top: 0; display: block; }
-  #stage { position: fixed; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; --vw: 19.2px; --vh: 10.8px; }
+  #stage { position: fixed; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; --vw: 19.2px; --vh: 10.8px; overflow: hidden; }
   #stage > * { position: absolute; }
   /* 舞台そのものはクリックを素通しして、下のルーレット(canvas)に届ける */
   #stage { pointer-events: none; }
@@ -604,7 +604,9 @@
   body.ui-hidden #app { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); grid-template-areas: "stage"; }
   body.ui-hidden #topbar, body.ui-hidden #panel, body.ui-hidden #spinbar { display: none; }
   /* 回している間は、一覧とヘッダーは触れない(薄く) */
-  body.spinning #panel, body.spinning #topbar, body.spinning #spinbar { opacity: .3; pointer-events: none; }
+  /* 背景はそのまま(透けると演出の帯が見える)、中身だけ薄く */
+  body.spinning #panel > *, body.spinning #topbar > *, body.spinning #spinbar > * { opacity: .3; }
+  body.spinning #panel, body.spinning #topbar, body.spinning #spinbar { pointer-events: none; }
   body.empty #btn-spin, body.empty #btn-spin2 { opacity: .35; pointer-events: none; animation: none; }
   #result-text.draft .r-tier .glw { --tw: min(calc(46 * var(--vw)), calc(var(--ar, 4) * 13 * var(--vh))); width: var(--tw); margin-bottom: calc(-0.1 * var(--tw) / var(--ar, 4)); }
   #result.end #result-text.miss ~ .rbg, #result.end:has(.miss) .rbg { background: radial-gradient(circle, rgba(40,44,54,.35), rgba(10,12,16,.75)); }
