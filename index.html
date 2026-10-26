@@ -641,6 +641,10 @@
   /* 背景はそのまま(透けると演出の帯が見える)、中身だけ薄く */
   body.spinning #panel > *, body.spinning #topbar > *, body.spinning #spinbar > * { opacity: .3; }
   body.spinning #panel, body.spinning #topbar, body.spinning #spinbar { pointer-events: none; }
+  /* スマホ: PUSH・連打の間は、下の SPIN! が PUSH ボタンになる */
+  body.spinning.pushing #spinbar { pointer-events: auto; }
+  body.spinning.pushing #spinbar > * { opacity: 1; animation: pushPulse .5s ease-in-out infinite; }
+  @keyframes pushPulse { 50% { transform: scale(1.04); filter: brightness(1.25); } }
   body.empty #btn-spin, body.empty #btn-spin2 { opacity: .35; pointer-events: none; animation: none; }
   #result-text.draft .r-tier .glw { --tw: min(calc(46 * var(--vw)), calc(var(--ar, 4) * 13 * var(--vh))); width: var(--tw); margin-bottom: calc(-0.1 * var(--tw) / var(--ar, 4)); }
   #result.end #result-text.miss ~ .rbg, #result.end:has(.miss) .rbg { background: radial-gradient(circle, rgba(40,44,54,.35), rgba(10,12,16,.75)); }
@@ -2284,6 +2288,7 @@ function waitPush(tierKey, vibe, mash = false, timeout = mash ? 4500 : 3500) {
   tx.appendChild(glossy(mash ? 'ボタンを連打!!' : 'ボタンを押せ!!', scheme));
   void el.offsetWidth;
   el.classList.add('show');
+  document.body.classList.add('pushing'); $('btn-spin2').textContent = mash ? '連打!!' : 'PUSH!';
   if (vibe) el.classList.add('vibe');
   sound.pushPrompt();
   const bz = vibe ? setInterval(() => sound.buzz(), 750) : null;
@@ -2292,6 +2297,7 @@ function waitPush(tierKey, vibe, mash = false, timeout = mash ? 4500 : 3500) {
   return new Promise((resolve) => {
     const finish = () => {
       clearTimeout(timer); clearInterval(bz); pushResolve = null;
+      document.body.classList.remove('pushing'); $('btn-spin2').textContent = 'SPIN!';
       el.classList.remove('vibe'); el.classList.add('pressed');
       setTimeout(() => { el.classList.remove('show'); }, 180);
       setTimeout(() => { el.className = ''; resolve(); }, 330);
@@ -3822,7 +3828,7 @@ function previewPlan(winner, n) {
   };
 }
 
-const VERSION = '1.0.1';
+const VERSION = '1.0.2';
 const IS_DEV = /\/dev\/?$/.test(location.pathname.replace(/index\.html$/, ''));
 $('ver').textContent = `ルーレットDX v${VERSION}${IS_DEV ? '（確認用）' : ''}`;
 if (IS_DEV) {
