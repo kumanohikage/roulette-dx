@@ -3708,7 +3708,7 @@ function applyBackdrop() {
 }
 applyBackdrop();
 $('btn-sound').addEventListener('click', () => { sound.enabled = !sound.enabled; $('btn-sound').textContent = sound.enabled ? '🔊' : '🔇'; $('lotsfx').contentWindow?.postMessage({ type: 'silence', on: !sound.enabled }, '*'); });
-$('btn-spin2').addEventListener('click', startSpin);
+$('btn-spin2').addEventListener('click', () => { if (pushResolve) pushResolve(); else if ($('result').classList.contains('show')) closeResult(); else startSpin(); });
 /* ---------- 重さの診断: ブラウザ側の設定で重くなっているときだけ、直し方を出す(画質は下げない) ---------- */
 function checkPerf() {
   let soft = false;
@@ -3822,7 +3822,7 @@ function previewPlan(winner, n) {
   };
 }
 
-const VERSION = '1.0.0';
+const VERSION = '1.0.1';
 const IS_DEV = /\/dev\/?$/.test(location.pathname.replace(/index\.html$/, ''));
 $('ver').textContent = `ルーレットDX v${VERSION}${IS_DEV ? '（確認用）' : ''}`;
 if (IS_DEV) {
@@ -3841,7 +3841,7 @@ function refreshWheel(now = false) {
   const go = async () => {
     if (isSpinning || $('result').classList.contains('show')) return;
     syncDraft();
-    await document.fonts.load(`100px 'Dela Gothic One'`, draft.leaders.join('') + draft.pick + curSet().tiers.map((x) => x.name).join('')).catch(() => {});
+    await ensureFont(draft.leaders.join('') + draft.pick + 'に決定!!激熱抽選リーチ');
     if ((draftImg ? draftImg.src : '') !== draft.image) await loadDraftImage();
     glossCache.clear();
     setMode('light', true);
@@ -4302,6 +4302,20 @@ document.querySelectorAll('button').forEach((b) => b.addEventListener('keydown',
 window.addEventListener('resize', resize);
 window.addEventListener('resize', () => { if (!$('lotsbox').hidden !== lotsOk()) lotsIdle(); });
 document.fonts.addEventListener('loadingdone', () => refreshWheel());
+// iPhone の Safari は、文字を1度画面(DOM)で使うまで、字の一部(日本語の分割ファイル)を読まないことがある。
+// 盤やつるつる文字(canvas)に描く前に、見えない要素で同じ文字を使わせ、読み終わるまで待つ
+async function ensureFont(text) {
+  let el = document.getElementById('fontwarm');
+  if (!el) { el = document.createElement('div'); el.id = 'fontwarm'; el.setAttribute('aria-hidden', 'true'); el.style.cssText = "position:fixed;left:-9999px;top:0;opacity:0;pointer-events:none;font:20px 'Dela Gothic One';white-space:nowrap"; document.body.appendChild(el); }
+  el.textContent = text;
+  const f = "100px 'Dela Gothic One'";
+  await document.fonts.load(f, text).catch(() => {});
+  for (let i = 0; i < 15 && !document.fonts.check(f, text); i++) await new Promise((r) => setTimeout(r, 200));
+  await document.fonts.ready;
+}
+// 念のため、少し遅れて読み終わった字があれば描き直す(Safari は loadingdone が来ないことがある)
+let fontRedrawn = 0;
+setInterval(() => { if (fontRedrawn < 5 && document.fonts.status === 'loaded' && !isSpinning) { fontRedrawn++; if (fontRedrawn === 2 || fontRedrawn === 5) refreshWheel(); } }, 1500);
 new ResizeObserver(() => resize()).observe($('stagebox'));
 // iOS Safari は viewport の拡大禁止を無視するため、ピンチとダブルタップ拡大を直接止める
 document.addEventListener('gesturestart', (e) => e.preventDefault());
