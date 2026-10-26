@@ -660,7 +660,7 @@
     </section>
     <section id="p-set" hidden>
       <label class="kv"><span>名前</span><input id="set-name" type="text" maxlength="30"></label>
-      <div class="kv"><span>テーマ</span><div class="seg" id="theme-seg"><button data-v="treasure">宝</button><button data-v="gacha">ガチャ</button><button data-v="shogi">将棋</button></div></div>
+      <div class="kv"><span>テーマ</span><div class="seg" id="theme-seg"><button data-v="treasure">宝</button><button data-v="shogi">将棋</button></div></div>
       <div class="kv"><span>モード</span><div class="seg" id="mode-seg"><button data-v="normal">ふつう</button><button data-v="gacha">ガチャ</button></div></div>
       <div class="prow"><span class="sp"></span><button id="set-del" class="pbtn warn">この組を削除</button></div>
       <div id="ver" class="ver"></div>
@@ -721,7 +721,7 @@ function normSet(x) {
   for (const n of x.items) x.tierOf[n] = [0, 1, 2].includes(to[n]) ? to[n] : 2;
   return x;
 }
-const THEME_KEYS = ['treasure', 'gacha', 'shogi'];
+const THEME_KEYS = ['treasure', 'shogi'];
 const defaultTiers = () => [{ name: '超大当たり', pct: 1 }, { name: '大当たり', pct: 5 }, { name: '当たり', pct: 30 }];
 const clampPct = (v) => { v = Math.round(Number(v) * 100) / 100; return Number.isFinite(v) ? Math.min(100, Math.max(0, v)) : 0; };
 // 残りの等級(はずれがオンならはずれ、オフなら当たり)の確率 = 100 − ほかの合計
@@ -1155,7 +1155,6 @@ function planDraft(winner, n) {
 // テーマ: 演出の確率はどれも同じで、駒にあたる物の見た目だけが替わる(模型は Blender で作った models/*.glb、段の絵は models/icons/)
 const THEMES = {
   treasure: { toss: 'コイントス', hit: '王冠', swarm: '金貨', gim: '宝箱', steps: [1, 2, 3, 4, 5, 6, 7, 8].map((k) => `treasure-${k}`) },
-  gacha: { toss: 'カプセル', hit: '金', swarm: 'カプセル群', gim: 'ガチャマシン', steps: ['gacha-white', 'gacha-blue', 'gacha-green', 'gacha-red', 'gacha-silver', 'gacha-gold', 'gacha-rainbow', 'gacha-machine'] },
   shogi: { toss: '振り駒', hit: 'と', swarm: '駒群予告', gim: '役物落下', steps: null },
 };
 let THEME = 'treasure', SHOGI = false;
@@ -1842,21 +1841,6 @@ const woodMat = new THREE.MeshStandardMaterial({ color: 0xe9c27c, roughness: 0.5
 const gltfLoader = new GLTFLoader();
 const ASSETS = {};
 const loadAsset = (name) => (ASSETS[name] ??= gltfLoader.loadAsync(`models/${name}.glb`).then((g) => g.scene).catch(() => null));
-const CAPSULE_COLORS = ['#ff4d6d', '#3d9bff', '#ffcf3a', '#3fd27a', '#b07bff', '#ff8a2a'];
-const GOLD = { color: '#ffc93a', metalness: 0.85, roughness: 0.22 };
-// カプセルの殻を塗り分けて複製(top = 上の殻、ほか = 下の殻と帯)
-function tintCapsule(src, top, bottom = null) {
-  const c = src.clone(true);
-  c.traverse((o) => {
-    if (!o.isMesh) return;
-    const spec = o.name.startsWith('top') ? top : bottom;
-    if (!spec) return;
-    o.material = o.material.clone();
-    if (typeof spec === 'string') o.material.color.set(spec);
-    else { o.material.color.set(spec.color); o.material.metalness = spec.metalness; o.material.roughness = spec.roughness; }
-  });
-  return c;
-}
 // 模型を中心に寄せて、高さ h にそろえる(落ちてくる大物用)
 function fitModel(src, h) {
   const c = src.clone(true), g = new THREE.Group();
@@ -1873,7 +1857,7 @@ async function applyTheme() {
   THEME = curSet().theme; SHOGI = THEME === 'shogi';
   document.body.classList.toggle('shogi', SHOGI);
   const th = THEMES[THEME];
-  const [piece, big] = THEME === 'treasure' ? await Promise.all([loadAsset('coin'), loadAsset('chest')]) : THEME === 'gacha' ? await Promise.all([loadAsset('capsule'), loadAsset('machine')]) : [null, null];
+  const [piece, big] = THEME === 'treasure' ? await Promise.all([loadAsset('coin'), loadAsset('chest')]) : [null, null];
   if (THEME !== curSet().theme) return;   // 読み込み中に別のテーマへ替わった
   const put = (g, model) => {
     const old = g.children.find((o) => o.userData.model); if (old) g.remove(old);
@@ -1885,14 +1869,10 @@ async function applyTheme() {
   if (THEME === 'treasure') {
     swarm.forEach((g) => put(g, piece && piece.clone(true)));
     furi.forEach((g) => put(g, piece && piece.clone(true)));          // 静止は★の面、裏返ると王冠の面(当たり)
-  } else if (THEME === 'gacha') {
-    swarm.forEach((g, i) => { const c = piece && tintCapsule(piece, CAPSULE_COLORS[i % CAPSULE_COLORS.length]); if (c) c.rotation.x = rand(-0.6, 0.6); put(g, c); });
-    furi.forEach((g) => { const c = piece && tintCapsule(piece, GOLD); if (c) c.rotation.x = -Math.PI / 2; put(g, c); });   // 静止は白い殻、裏返ると金の殻
   } else { swarm.forEach((g) => put(g, null)); furi.forEach((g) => put(g, null)); }
-  const giant = big && fitModel(big, THEME === 'gacha' ? 1.15 : 0.85);
+  const giant = big && fitModel(big, 0.85);
   put(gimmick, giant);
   gimmick.userData.lid = giant?.getObjectByName('lid') || null;
-  gimmick.userData.handle = giant?.getObjectByName('handle') || null;
   if (th.steps) th.steps.forEach((s) => { new Image().src = `models/icons/${s}.png`; });
   const pv = (id, text) => { const e = document.getElementById(id); if (e) e.textContent = text; };
   pv('pv-l-furi', SHOGI ? '振り駒の「と」' : `${th.toss}の${th.hit}`); pv('pv-l-swarm', th.swarm); pv('pv-l-gim', th.gim);
@@ -1931,7 +1911,7 @@ const gimmick = new THREE.Group();
   scene.add(gimmick);
 }
 function dropGimmick() { gimmick.userData.t = 0; gimmick.visible = true; }
-gimmick.userData.lid = gimmick.userData.handle = null;
+gimmick.userData.lid = null;
 function updateGimmick(dt) {
   const u = gimmick.userData;
   if (u.t < 0) return;
@@ -1947,8 +1927,7 @@ function updateGimmick(dt) {
   gimmick.position.set(0, y, 6);
   gimmick.rotation.set(0, (t > 0.32 && t < 1.35) ? Math.sin(t * 9) * 0.06 : 0, 0);
   gimMat.emissiveIntensity = t > 0.32 && t < 1.35 ? 0.4 + 0.4 * Math.abs(Math.sin(t * 14)) : 0.1;
-  if (u.lid) u.lid.rotation.x = t > 0.55 && t < 1.35 ? -1.75 * Math.min(1, (t - 0.55) / 0.22) ** 0.6 : 0;
-  if (u.handle) u.handle.rotation.z = t > 0.5 ? -Math.min(1, (t - 0.5) / 0.7) * TAU : 0;
+  if (u.lid) u.lid.rotation.x = t > 0.55 ? -1.75 * Math.min(1, (t - 0.55) / 0.22) ** 0.6 : 0;
   if (u.lid && t > 0.55 && t - dt <= 0.55) { flash('#ffe08a', 0.5, 0.7); sound.kyuin(); }
 }
 
