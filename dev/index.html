@@ -548,7 +548,8 @@
   .phead b { font-size: 14px; color: #fff3d6; }
   #lotsbox { position: absolute; inset: 0; z-index: 40; background: #0d0703; display: flex; align-items: center; justify-content: center; overflow: hidden; }
   #lotsbox[hidden] { display: none; }
-  #lotsfx { width: 1920px; height: 1080px; border: 0; flex: none; transform: scale(var(--ls, 1)); pointer-events: none; }
+  #lotsfx { width: 100%; height: 100%; border: 0; flex: none; pointer-events: none; }
+  .vnote { margin: -2px 0 0 66px; font-size: 11px; font-weight: 400; color: #a8916f; }
   .seg button:disabled { opacity: .4; cursor: default; }
   .imgrow { display: flex; gap: 10px; align-items: center; border-radius: 10px; }
   #img-cv { width: 72px; height: 72px; flex: none; border-radius: 50%; cursor: grab; touch-action: none !important; }
@@ -695,6 +696,7 @@
       <div class="kv"><span>画像</span><div class="imgrow" id="img-row"><canvas id="img-cv" width="144" height="144" title="ドラッグで位置・ホイールで拡大" aria-label="盤の真ん中の画像"></canvas><div class="imgops"><div class="r"><button id="img-pick" class="pbtn">画像を選ぶ</button><button id="img-clear" class="pbtn">外す</button></div><input type="range" id="img-zoom" min="1" max="4" step="0.01" value="1" aria-label="画像の拡大"></div></div></div>
       <input id="img-file" type="file" accept="image/*" hidden>
       <div class="kv"><span>見せ方</span><div class="seg" id="view-seg"><button data-v="wheel">ルーレット</button><button data-v="envelope">封筒</button><button data-v="amida">あみだ</button></div></div>
+      <p class="vnote">封筒・あみだは候補2〜12個まで。演出は長め（30秒ほど）</p>
     </section>
     <section class="pitems">
       <div class="phead"><b>候補</b><span class="sp"></span><label class="swl">当たったら外す <input type="checkbox" id="auto-off" class="sw"></label></div>
@@ -2634,14 +2636,31 @@ function lotsFrame() {
   return lotsReady;
 }
 addEventListener('message', (e) => { const m = e.data || {}; if (m.type === 'lots3d-done' && lotsDone && m.id === lotsId) { const r = lotsDone; lotsDone = null; r(); } });
+let lotsLive = false, lotsIdleD = null;
+const lotsOk = (set = curSet()) => set.view !== 'wheel' && activeItems(set).length >= 2 && activeItems(set).length <= 12;
+async function lotsIdle() {
+  if (lotsLive || isSpinning || $('result').classList.contains('show')) return;
+  if (!lotsOk()) { $('lotsbox').hidden = true; lotsIdleD = null; return; }
+  $('lotsbox').hidden = false;
+  const n = draft.leaders.length, mode = curSet().view;
+  const d = { id: ++lotsId, mode, lots: draft.leaders.map((nm, i) => ({ color: leaderColor(i), label: CIRCLED[i], name: nm })), owners: [...draft.leaders], order: [...Array(n).keys()], winLot: 0, opened: 0, done: false, player: { name: draft.pick } };
+  if (mode === 'amida') { const rungs = amidaRungs(n, Math.random); d.amida = { rungs, goal: amidaEnd(rungs, 0) }; }
+  lotsIdleD = d;
+  await lotsFrame();
+  if (lotsIdleD === d) $('lotsfx').contentWindow.postMessage({ type: 'lots', data: d }, '*');
+}
 async function lotsFx(winner, mode) {
   const n = draft.leaders.length, f = $('lotsfx');
+  lotsLive = true;
   $('lotsbox').hidden = false;
   await lotsFrame();
   const order = [...Array(n).keys()];
   for (let i = n - 1; i > 0; i--) { const j = fairInt(i + 1); [order[i], order[j]] = [order[j], order[i]]; }
+  // 見えていたくじと同じ並び・同じ横線で作り直して開け始める(見た目は変わらない)
+  const base = lotsIdleD && lotsIdleD.mode === mode && lotsIdleD.lots.length === n ? lotsIdleD : null;
   const d = { id: ++lotsId, mode, lots: draft.leaders.map((nm, i) => ({ color: leaderColor(i), label: CIRCLED[i], name: nm })), owners: [...draft.leaders], order, winLot: winner, opened: order.indexOf(winner) + 1, done: false, player: { name: draft.pick } };
-  if (mode === 'amida') { const rungs = amidaRungs(n, Math.random); d.amida = { rungs, goal: amidaEnd(rungs, winner) }; }
+  if (mode === 'amida') { const rungs = base ? base.amida.rungs : amidaRungs(n, Math.random); d.amida = { rungs, goal: amidaEnd(rungs, winner) }; }
+  lotsIdleD = null;
   f.contentWindow.postMessage({ type: 'silence', on: !sound.enabled }, '*');
   await new Promise((r) => { lotsDone = r; f.contentWindow.postMessage({ type: 'lots', data: d }, '*'); });
 }
@@ -3338,7 +3357,7 @@ function showResult(winner) {
 function closeResult() {
   const res = $('result');
   if (!res.classList.contains('show')) return;
-  if (!$('lotsbox').hidden) { $('lotsbox').hidden = true; $('lotsfx').contentWindow?.postMessage({ type: 'lots-reset' }, '*'); }
+  if (lotsLive) { lotsLive = false; $('lotsfx').contentWindow?.postMessage({ type: 'lots-reset' }, '*'); setTimeout(lotsIdle, 0); }
   evalHide();
   res.classList.remove('show');
   document.body.classList.remove('result-open');
@@ -3608,7 +3627,6 @@ function layoutStage() {
   const x = Math.round(box.left) + Math.floor((ww - w) / 2), y = Math.round(box.top) + Math.floor((wh - h) / 2);
   st.style.width = `${sw}px`; st.style.height = `${sh}px`;
   st.style.setProperty('--vw', `${sw / 100}px`); st.style.setProperty('--vh', `${sh / 100}px`);
-  st.style.setProperty('--ls', Math.min(1, sw / 1920, sh / 1080).toFixed(4));
   st.style.transform = `translate(${x}px, ${y}px) scale(${sc})`;
   Object.assign(canvas.style, { left: `${x}px`, top: `${y}px`, width: `${w}px`, height: `${h}px` });
   document.body.classList.toggle('vertical', vertical);
@@ -3799,6 +3817,7 @@ function refreshWheel(now = false) {
     glossCache.clear();
     setMode('light', true);
     warmGlossy();
+    lotsIdle();
   };
   if (now) go(); else wheelTimer = setTimeout(go, 120);
 }
@@ -4003,7 +4022,7 @@ function renderSetPanel() {
 }
 // 組を切り替えたとき: 一覧・盤・隠した状態をその組のものに
 function applySet() {
-  renderSetBtn(); renderItems(); renderSetPanel(); applyTheme(); renderImg();
+  renderSetBtn(); renderItems(); renderSetPanel(); applyTheme(); renderImg(); lotsIdle();
   document.body.classList.toggle('ui-hidden', curSet().hidden);
 }
 function switchSet(id) {
@@ -4154,7 +4173,7 @@ $('img-zoom').addEventListener('input', (e) => { curSet().crop.zoom = +e.target.
   });
 }
 
-$('view-seg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b || b.disabled || curSet().view === b.dataset.v) return; curSet().view = b.dataset.v; saveStore(); renderSetPanel(); });
+$('view-seg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b || b.disabled || curSet().view === b.dataset.v) return; curSet().view = b.dataset.v; saveStore(); renderSetPanel(); lotsIdle(); });
 
 /* ---------- 道具: 全画面・隠す ---------- */
 function toggleFull() {

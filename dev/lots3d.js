@@ -130,8 +130,15 @@ composer.addPass(new RenderPass(scene, camera));
 const bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.5, 0.35, 1.15);
 composer.addPass(bloom);
 composer.addPass(new OutputPass());
-const fitHud = () => { $('hud').style.transform = `scale(${innerWidth / W})`; };
-addEventListener('resize', fitHud); fitHud();
+// 窓(iframe)の形に合わせる。文字の層は幅で拡大し、高さは窓に合わせて伸ばす
+function fitView() {
+  const w = innerWidth || W, h = innerHeight || H;
+  renderer.setSize(w, h, false); composer.setSize(w, h);
+  camera.aspect = w / h; camera.updateProjectionMatrix();
+  $('hud').style.transform = `scale(${w / W})`; $('hud').style.height = `${(h * W) / w}px`;
+  if (typeof bg !== 'undefined') { const d = 120, hh = 2 * d * Math.tan((camera.fov * Math.PI) / 360) * 1.5; bg.scale.set(hh * camera.aspect, hh, 1); bgU.uAspect.value = camera.aspect; }
+}
+addEventListener('resize', fitView);
 
 /* ---------- 背景: ルーレットの「光」の後光(カメラに付けて、画面に対して動かない=酔いにくい目印) ---------- */
 const bgU = { uTime: { value: 0 }, uReach: { value: 0 }, uWin: { value: 0 }, uDim: { value: 0 }, uGlow: { value: 0.45 }, uTier: { value: new THREE.Color(1, 1, 1) }, uZebra: { value: 0 }, uAspect: { value: W / H }, uSat: { value: 1 } };
@@ -160,8 +167,9 @@ const bg = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.ShaderMateria
 }));
 bg.renderOrder = -10; bg.frustumCulled = false;
 // ルーレットと同じく、見える範囲の 1.5 倍の板(真ん中の明るいところを大きく見せる)
-{ const d = 120, h = 2 * d * Math.tan((camera.fov * Math.PI) / 360) * 1.5; bg.scale.set(h * camera.aspect, h, 1); bg.position.set(0, 0, -d); }
+bg.position.set(0, 0, -120);
 camera.add(bg);
+fitView();
 
 /* ---------- 小さな道具 ---------- */
 const now = () => performance.now() / 1000;
@@ -389,6 +397,9 @@ function clearWorld() {
   if (world) { world.cancel = true; scene.remove(world.root); }
   world = null; tweens = []; tickers = []; SPEED = 1; meteors.clear(); fx.heat = 0; showResult('', false); fx.winT = fx.win = 0; fx.dimT = 0; fx.bulb = 'idle'; fx.team = null; fx.ambT = 0.15; tierLight.intensity = 0;
   $('fx').innerHTML = '';
+  // 前の結果の紙吹雪も消す
+  conf.forEach((c, i) => { c.on = false; confDummy.scale.setScalar(0); confDummy.updateMatrix(); confetti.setMatrixAt(i, confDummy.matrix); });
+  confetti.instanceMatrix.needsUpdate = true;
 }
 function onData(d) {
   D = d;
@@ -481,7 +492,7 @@ function buildEnvelope(d) {
   });
   // 全体: 名札から、上に出た中袋までが入る高さ。チームが多いときは横幅に合わせて引く
   const fit = n * gap + 1.2, tanH = Math.tan((17.5 * Math.PI) / 180);
-  const overview = () => { const dist = Math.max(5.7 / 2 / tanH, fit / 2 / tanH / (W / H)); return { pos: new THREE.Vector3(0, 2.0, dist), look: new THREE.Vector3(0, 1.6, 0) }; };
+  const overview = () => { const dist = Math.max(5.7 / 2 / tanH, fit / 2 / tanH / camera.aspect); return { pos: new THREE.Vector3(0, 2.0, dist), look: new THREE.Vector3(0, 1.6, 0) }; };
   // 開けるとき: その封筒に寄る(横にずれるだけで回さない)
   const zoom = (e) => ({ pos: new THREE.Vector3(e.x * 0.85, 2.2, Math.min(6.6, overview().pos.z * 0.8)), look: new THREE.Vector3(e.x, 2.0, 0) });
   camSet(overview());
@@ -678,7 +689,7 @@ function buildAmida(d) {
   }
   const spanTop = boardTop + 0.55, spanBot = boardBot - 0.55, fullW = boardHW * 2 + 1.4, tanH = Math.tan((17.5 * Math.PI) / 180);
   const h0 = (spanTop - spanBot) / 0.98, cy = (spanTop + spanBot) / 2;
-  const home = { pos: new THREE.Vector3(0, cy, Math.max(h0 / 2 / tanH, fullW / 2 / tanH / (W / H))), look: new THREE.Vector3(0, cy, 0) };
+  const home = { pos: new THREE.Vector3(0, cy, Math.max(h0 / 2 / tanH, fullW / 2 / tanH / camera.aspect)), look: new THREE.Vector3(0, cy, 0) };
   camSet(home);
   return {
     root,
