@@ -490,7 +490,7 @@
     font: 900 13px 'Noto Sans JP', sans-serif; letter-spacing: .08em; box-shadow: 0 2px 10px rgba(0,0,0,.5);
   }
   #pv {
-    position: fixed; left: 12px; top: 92px; z-index: 80; width: 270px; max-height: calc(100% - 104px); overflow: auto;
+    position: fixed; left: 12px; top: 92px; z-index: 15; width: 270px; max-height: calc(100% - 104px); overflow: auto;
     padding: 10px 12px; border-radius: 12px; background: rgba(10,10,18,.88); border: 1px solid rgba(255,255,255,.2);
     color: #eee; font: 700 12px 'Noto Sans JP', sans-serif; box-shadow: 0 6px 30px rgba(0,0,0,.6);
   }
@@ -654,7 +654,8 @@
     <div class="setsel"><button id="set-btn" class="setbtn" aria-haspopup="true" aria-expanded="false"></button>
       <div id="set-pop" class="pop" hidden>
         <ul id="set-list"></ul>
-        <div class="pop-row pop-new"><button id="set-new">＋ 新しい組</button><button id="set-dup">この組を複製</button></div>
+        <div class="pop-sec">＋ 新しい組</div>
+        <div class="pop-row"><button data-new="empty">空</button><button data-new="dinner">夕ごはん</button><button data-new="order">順番決め</button><button data-new="gacha">ガチャ</button><button id="set-dup">この組を複製</button></div>
       </div>
     </div>
     <span class="sp"></span>
@@ -713,6 +714,8 @@ const LEADER_PALETTE = [
 const STORE_KEY = 'rouletteDX';
 const TEMPLATES = {
   dinner: () => ({ name: '今日の夕ごはん', items: ['カレー', 'ラーメン', '牛丼', 'ハンバーガー', 'ピザ', '寿司', '唐揚げ', 'コンビニ'] }),
+  order: () => ({ name: '順番決め', items: ['Aさん', 'Bさん', 'Cさん', 'Dさん'], autoOff: true }),
+  gacha: () => ({ name: 'ガチャ', items: ['特賞', 'A賞', 'B賞', 'C賞'], mode: 'gacha', tierOf: { 特賞: 0, A賞: 1, B賞: 2, C賞: 2 } }),
   empty: () => ({ name: '新しい組', items: [] }),
 };
 const newId = () => Math.random().toString(36).slice(2, 10);
@@ -1168,7 +1171,7 @@ function planDraft(winner, n) {
 // 将棋の小ネタ(駒のステップアップ・駒群・巨大王将・振り駒)は将棋のテーマだけ
 // テーマ: 演出の確率はどれも同じで、駒にあたる物の見た目だけが替わる(模型は Blender で作った models/*.glb、段の絵は models/icons/)
 const THEMES = {
-  treasure: { toss: 'コイントス', hit: '王冠', swarm: '金貨', gim: '宝箱', steps: [1, 2, 3, 4, 5, 6, 7, 8].map((k) => `treasure-${k}`) },
+  treasure: { toss: 'コイントス', hit: '王冠', swarm: '魚群', gim: '宝箱', sea: true, steps: [1, 2, 3, 4, 5, 6, 7, 8].map((k) => `treasure-${k}`) },
   shogi: { toss: '振り駒', hit: 'と', swarm: '駒群予告', gim: '役物落下', steps: null },
 };
 let THEME = 'treasure', SHOGI = false;
@@ -1403,7 +1406,7 @@ composer.addPass(new OutputPass());
 /* ---------- 背景シェーダー ---------- */
 const bgUniforms = {
   uTime: { value: 0 }, uDark: { value: 0 }, uReach: { value: 0 }, uWin: { value: 0 }, uDim: { value: 0 }, uGlow: { value: 0.45 },
-  uTier: { value: new THREE.Color(1, 1, 1) }, uAspect: { value: 1 },
+  uTier: { value: new THREE.Color(1, 1, 1) }, uAspect: { value: 1 }, uSea: { value: 0 },
 };
 const bg = new THREE.Mesh(
   new THREE.PlaneGeometry(1, 1),
@@ -1411,7 +1414,7 @@ const bg = new THREE.Mesh(
     uniforms: bgUniforms, depthWrite: false,
     vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
     fragmentShader: `
-      uniform float uTime, uDark, uReach, uWin, uDim, uGlow, uAspect; uniform vec3 uTier; varying vec2 vUv;
+      uniform float uTime, uDark, uReach, uWin, uDim, uGlow, uAspect, uSea; uniform vec3 uTier; varying vec2 vUv;
       float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453); }
       void main(){
         vec2 p = (vUv - 0.5) * vec2(uAspect, 1.0) * 2.0;
@@ -1433,6 +1436,18 @@ const bg = new THREE.Mesh(
         vec3 col = mix(lc, dc, uDark);
         // リーチ: 期待度カラー
         col = mix(col, uTier * (0.08 + 0.3 * rays), uReach * 0.7);
+        // 海の中(宝のテーマのリーチ): 深い青、上から揺れる光の筋、ゆらめく光の網
+        if (uSea > 0.001) {
+          vec3 sea = mix(vec3(0.0, 0.02, 0.10), vec3(0.02, 0.15, 0.46), smoothstep(-1.1, 1.1, p.y));
+          float sx = p.x + 0.35 * p.y;
+          float shaft = pow(0.5 + 0.5 * sin(sx * 5.0 + sin(uTime * 0.4) * 1.2), 8.0) + 0.6 * pow(0.5 + 0.5 * sin(sx * 9.0 - uTime * 0.25 + 1.7), 10.0);
+          sea += shaft * vec3(0.22, 0.45, 0.8) * smoothstep(-0.6, 1.1, p.y) * 0.55;
+          vec2 q = p * 3.0 + vec2(uTime * 0.15, uTime * 0.1);
+          float ca = abs(sin(q.x + sin(q.y * 1.3 + uTime * 0.7))) * abs(sin(q.y * 1.1 + sin(q.x * 0.9 - uTime * 0.6)));
+          sea += pow(1.0 - ca, 6.0) * vec3(0.12, 0.32, 0.6) * smoothstep(-0.2, 1.1, p.y) * 0.35;
+          sea += uTier * 0.03;
+          col = mix(col, sea, uSea);
+        }
         // 大当たり: 虹の後光
         vec3 rb = 0.5 + 0.5 * cos(6.2831 * (a / 6.2831 * 2.0 + uTime * 0.35 + vec3(0.0, 0.33, 0.67)));
         col += uWin * (rays * 0.35 + 0.05) * rb;
@@ -1855,6 +1870,37 @@ const woodMat = new THREE.MeshStandardMaterial({ color: 0xe9c27c, roughness: 0.5
 const gltfLoader = new GLTFLoader();
 const ASSETS = {};
 const loadAsset = (name) => (ASSETS[name] ??= gltfLoader.loadAsync(`models/${name}.glb`).then((g) => g.scene).catch(() => null));
+// 魚: 体とひれの材質は1匹ずつ(熱さで塗り分けるため)
+function cloneFish(src) {
+  const c = src.clone(true);
+  c.traverse((o) => { if (o.isMesh && /^Fish(Body|Fin)/.test(o.material.name)) o.material = o.material.clone(); });
+  return c;
+}
+// 魚群の色: 熱さ(最初に見せる熱さ)で 青 → 金 → ゼブラ → 虹
+let fishZebraTex = null;
+function fishZebra() {
+  if (fishZebraTex) return fishZebraTex;
+  const c = makeCanvas(256, 16), x = c.getContext('2d');
+  for (let i = 0; i < 12; i++) { x.fillStyle = i % 2 ? '#111318' : '#f4f6fa'; x.fillRect(i * 256 / 12, 0, 256 / 12 + 1, 16); }
+  return (fishZebraTex = canvasTex(c));
+}
+function paintFish(heat) {
+  swarm.forEach((g, i) => {
+    const m = g.children.find((o) => o.userData.model); if (!m) return;
+    m.traverse((o) => {
+      if (!o.isMesh) return;
+      const mt = o.material, body = mt.name.startsWith('FishBody'), fin = mt.name.startsWith('FishFin');
+      if (!body && !fin) return;
+      mt.map = null; mt.metalness = 0.3; mt.roughness = 0.25; mt.emissive?.set(0x000000);
+      if (heat === 'gold') { mt.color.set(body ? '#ffbf1f' : '#ffe08a'); mt.metalness = 0.75; mt.roughness = 0.2; }
+      else if (heat === 'zebra') { if (body) { mt.color.set('#ffffff'); mt.map = fishZebra(); } else mt.color.set('#ffd23a'); }
+      else if (heat === 'rainbow') { const c = new THREE.Color().setHSL((i * 0.13) % 1, 0.9, body ? 0.55 : 0.75); mt.color.copy(c); mt.emissive?.copy(c).multiplyScalar(0.25); }
+      else mt.color.set(body ? '#2f7dff' : '#8fc4ff');
+      mt.needsUpdate = true;
+    });
+  });
+}
+
 // 模型を中心に寄せて、高さ h にそろえる(落ちてくる大物用)
 function fitModel(src, h) {
   const c = src.clone(true), g = new THREE.Group();
@@ -1871,7 +1917,7 @@ async function applyTheme() {
   THEME = curSet().theme; SHOGI = THEME === 'shogi';
   document.body.classList.toggle('shogi', SHOGI);
   const th = THEMES[THEME];
-  const [piece, big] = THEME === 'treasure' ? await Promise.all([loadAsset('coin'), loadAsset('chest')]) : [null, null];
+  const [piece, big, fish] = THEME === 'treasure' ? await Promise.all([loadAsset('coin'), loadAsset('chest'), loadAsset('fish')]) : [null, null, null];
   if (THEME !== curSet().theme) return;   // 読み込み中に別のテーマへ替わった
   const put = (g, model) => {
     const old = g.children.find((o) => o.userData.model); if (old) g.remove(old);
@@ -1881,7 +1927,7 @@ async function applyTheme() {
     if (use) { model.userData.model = true; g.add(model); }
   };
   if (THEME === 'treasure') {
-    swarm.forEach((g) => put(g, piece && piece.clone(true)));
+    swarm.forEach((g) => put(g, fish && cloneFish(fish)));
     furi.forEach((g) => put(g, piece && piece.clone(true)));          // 静止は★の面、裏返ると王冠の面(当たり)
   } else { swarm.forEach((g) => put(g, null)); furi.forEach((g) => put(g, null)); }
   const giant = big && fitModel(big, 0.85);
@@ -1924,13 +1970,29 @@ const gimmick = new THREE.Group();
   gimmick.userData.t = -1;
   scene.add(gimmick);
 }
-function dropGimmick() { gimmick.userData.t = 0; gimmick.visible = true; }
+function dropGimmick() { gimmick.userData.t = 0; gimmick.visible = true; gimmick.scale.setScalar(5.5); }
 gimmick.userData.lid = null;
 function updateGimmick(dt) {
   const u = gimmick.userData;
   if (u.t < 0) return;
   u.t += dt;
   const t = u.t, top = 18, low = 4.0;
+  if (u.lid) {
+    let y = low, s = 1;
+    if (t < 0.55) y = top - (top - low) * (1 - (1 - t / 0.55) ** 3);
+    else if (t >= 1.5 && t < 1.85) { const k = (t - 1.5) / 0.35; y = low - 3 * k * k; s = 1 - k; }
+    else if (t >= 1.85) { gimmick.visible = false; u.t = -1; return; }
+    if (t >= 0.55 && t - dt < 0.55) {
+      sound.gata(); fx.shake = 1.0; flash('#bfe6ff', 0.3, 0.5);
+      for (let i = 0; i < 60; i++) { const a = rand(0, TAU); sparks.emit(rand(-3, 3), low - 1.6, 6 + rand(-1, 1), Math.cos(a) * rand(0.5, 2), rand(1.5, 5), rand(-0.5, 0.5), BUBBLE, rand(0.18, 0.45), rand(0.8, 1.6), 0, 0.97); }
+    }
+    gimmick.position.set(0, y, 6);
+    gimmick.rotation.set(0, 0, t < 0.55 ? Math.sin(t * 9) * 0.12 * (1 - t / 0.55) : 0);
+    gimmick.scale.setScalar(5.5 * s);
+    u.lid.rotation.x = t > 0.65 ? -1.75 * Math.min(1, (t - 0.65) / 0.25) ** 0.6 : 0;
+    if (t > 0.65 && t - dt <= 0.65) { flash('#ffe08a', 0.5, 0.7); sound.kyuin(); }
+    return;
+  }
   let y;
   if (t < 0.32) y = top - (top - low) * (t / 0.32) ** 2;                       // 落下
   else if (t < 0.6) y = low + Math.sin((t - 0.32) / 0.28 * Math.PI) * 0.5;     // バウンド
@@ -1941,11 +2003,10 @@ function updateGimmick(dt) {
   gimmick.position.set(0, y, 6);
   gimmick.rotation.set(0, (t > 0.32 && t < 1.35) ? Math.sin(t * 9) * 0.06 : 0, 0);
   gimMat.emissiveIntensity = t > 0.32 && t < 1.35 ? 0.4 + 0.4 * Math.abs(Math.sin(t * 14)) : 0.1;
-  if (u.lid) u.lid.rotation.x = t > 0.55 ? -1.75 * Math.min(1, (t - 0.55) / 0.22) ** 0.6 : 0;
-  if (u.lid && t > 0.55 && t - dt <= 0.55) { flash('#ffe08a', 0.5, 0.7); sound.kyuin(); }
 }
 
-function launchSwarm() {
+function launchSwarm(heat = 'normal') {
+  if (THEMES[THEME].sea) paintFish(heat);
   const vw = viewHalfWidth();
   swarm.forEach((p, i) => {
     p.visible = true;
@@ -1962,7 +2023,8 @@ function updateSwarm(dt) {
     const s = u.t / u.dur;
     if (s >= 1) { p.visible = false; continue; }
     p.position.set(u.x0 + (u.x1 - u.x0) * s, u.y + Math.sin(s * 6 + u.ph) * 1.2, u.z);
-    p.rotation.set(Math.sin(u.t * 3 + u.ph) * 0.6, u.t * u.spin, Math.sin(u.t * 2) * 0.4);
+    if (THEMES[THEME].sea) p.rotation.set(0, Math.sin(u.t * 14 + u.ph) * 0.22, Math.cos(s * 6 + u.ph) * 0.25);
+    else p.rotation.set(Math.sin(u.t * 3 + u.ph) * 0.6, u.t * u.spin, Math.sin(u.t * 2) * 0.4);
   }
 }
 
@@ -2390,7 +2452,7 @@ async function startSpin() {
 
   const prelude = (async () => {
     await sleep(350);
-    if (plan.swarm) { await sleep(150); launchSwarm(); fx.shake = Math.max(fx.shake, 0.3); }
+    if (plan.swarm) { await sleep(150); launchSwarm(plan.heatPath ? plan.heatPath[0] : 'normal'); fx.shake = Math.max(fx.shake, 0.3); }
     const wait = 1900 - (performance.now() - t0);
     if (wait > 0) await sleep(wait);
     await gemAt(plan, 'mid');
@@ -2970,6 +3032,7 @@ function tierBulb(c, i) {
   return c.copy(fx.tier).multiplyScalar(3);
 }
 
+const BUBBLE = new THREE.Color(1.3, 1.8, 2.3);
 const AMB = { light: new THREE.Color(2.4, 1.7, 0.6), red: new THREE.Color(2.4, 0.2, 0.5), dark: new THREE.Color(1.3, 0.4, 2.6) };
 const ptrPos = new THREE.Vector3(), reachCol = new THREE.Color(), shakeV = new THREE.Vector3(), camDir = new THREE.Vector3();
 function emitAmbient(dt) {
@@ -2979,7 +3042,10 @@ function emitAmbient(dt) {
   let n = rate * dt; const vw = viewHalfWidth();
   while (n > 0) {
     if (Math.random() < n) {
-      if (currentMode === 'light') {
+      if (bgUniforms.uSea.value > 0.4) {
+        sparks.emit(camLook.x + rand(-vw, vw), camLook.y - viewHalfHeight() * 1.3, rand(-6, 3), rand(-0.6, 0.6), rand(1.6, 3.4), 0,
+          BUBBLE, rand(0.15, 0.5), rand(4, 7), 0, 1);
+      } else if (currentMode === 'light') {
         sparks.emit(camLook.x + rand(-vw, vw), camLook.y - viewHalfHeight() * 1.3, rand(-6, 3), rand(-0.3, 0.3), rand(1, 2.6), 0,
           AMB.light, rand(0.12, 0.32), rand(5, 9), 0, 1);
       } else {
@@ -3038,6 +3104,7 @@ function frame(now) {
   bgUniforms.uTime.value = time;
   bgUniforms.uDark.value = fx.dark;
   bgUniforms.uReach.value = fx.reach;
+  bgUniforms.uSea.value += ((THEMES[THEME].sea ? fx.reach : 0) - bgUniforms.uSea.value) * Math.min(1, dt * 3);
   bgUniforms.uWin.value = fx.win;
   bgUniforms.uDim.value = fx.dim;
   // 粒ほど極端にせず、通常 0.43 → 虹のPUSH待ち 1.0 くらいの幅で追従
@@ -3517,11 +3584,11 @@ $('set-btn').addEventListener('click', (e) => {
 });
 $('set-pop').addEventListener('click', (e) => e.stopPropagation());
 document.addEventListener('click', closePop);
-$('set-new').addEventListener('click', () => {
-  const x = makeSet(TEMPLATES.empty());
+document.querySelectorAll('[data-new]').forEach((b) => b.addEventListener('click', () => {
+  const x = makeSet(TEMPLATES[b.dataset.new]());
   store.sets.push(x); switchSet(x.id);
-  setTimeout(() => $('add').focus(), 50);
-});
+  if (b.dataset.new === 'empty') setTimeout(() => $('add').focus(), 50);
+}));
 $('set-name').addEventListener('change', (e) => { const v = e.target.value.trim().slice(0, 30); if (!v) { e.target.value = curSet().name; return; } curSet().name = v; saveStore(); renderSetBtn(); refreshWheel(); });
 $('set-name').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.isComposing) e.target.blur(); });
 $('set-name').addEventListener('input', () => { $('set-name-ok').hidden = false; });
