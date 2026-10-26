@@ -3,7 +3,8 @@
 なんでも決められる、派手な Web ルーレットです。今日の夕ごはん、順番決め、罰ゲーム、配信の企画などに。
 インストールは要りません。ブラウザで開いてそのまま回せます。
 
-- 開発中の確認版: https://kumanohikage.github.io/roulette-dx/dev/
+- ルーレットDX: https://kumanohikage.github.io/roulette-dx/
+- 演出だけ見たいとき（演出確認モード。演出を選んで回せます・抽選はしません）: https://kumanohikage.github.io/roulette-dx/?preview
 
 ## 使い方
 

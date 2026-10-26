@@ -716,7 +716,7 @@
     <section class="pitems">
       <div class="phead"><b>候補</b><span class="sp"></span><label class="swl">当たったら外す <input type="checkbox" id="auto-off" class="sw"></label></div>
       <div class="addw"><textarea id="add" rows="2" placeholder="候補を入力（改行でまとめて）" aria-label="候補を入力"></textarea><button id="add-go" class="pbtn go">登録</button></div>
-      <div class="prow"><button id="all-on" class="pbtn">全部乗せる</button></div>
+      <div class="prow"><button id="all-on" class="pbtn">全部表示</button></div>
       <ul id="items"></ul>
     </section>
     <section class="pfoot">
@@ -3822,7 +3822,7 @@ function previewPlan(winner, n) {
   };
 }
 
-const VERSION = '0.1.0';
+const VERSION = '1.0.0';
 const IS_DEV = /\/dev\/?$/.test(location.pathname.replace(/index\.html$/, ''));
 $('ver').textContent = `ルーレットDX v${VERSION}${IS_DEV ? '（確認用）' : ''}`;
 if (IS_DEV) {
