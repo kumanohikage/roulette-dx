@@ -250,6 +250,9 @@
     --s: min(calc(13 * var(--vh)), calc(11 * var(--vw))); width: var(--s); height: calc(var(--s) * 1.18); padding: 7px; box-sizing: border-box;
     background: var(--fr); clip-path: polygon(50% 0, 88% 20%, 100% 100%, 0 100%, 12% 20%);
   }
+  body:not(.shogi) .koma, body:not(.shogi) .koma i { clip-path: circle(50% at 50% 50%); }
+  body:not(.shogi) .koma { height: var(--s); }
+  body:not(.shogi) .koma i { padding-top: 0; background: radial-gradient(circle at 35% 30%, #fff6d0, #ffcf4a 45%, #c98a10); color: #7a3a00; }
   #steps.many .koma { --s: min(calc(11 * var(--vh)), calc(8.4 * var(--vw))); }
   .f-plain { --fr: linear-gradient(#fff6d8, #c99a3c 50%, #6a4410); --gl: rgba(255,220,140,.7); }
   #steps.many .komaw.big .koma { --s: min(calc(15 * var(--vh)), calc(11 * var(--vw))); }
@@ -525,6 +528,7 @@
   .pop li button[aria-current="true"] { border-color: #ffd27a; background: rgba(255,210,122,.12); }
   .pop-sec { margin: 10px 0 6px; padding-top: 8px; border-top: 1px solid rgba(217,119,6,.3); font-weight: 400; color: #c9b089; }
   .pop-row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .pop-new { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(217,119,6,.3); }
   .pop-row button { padding: 5px 10px; border-radius: 7px; border: 1px solid rgba(217,119,6,.5); background: none; }
   #panel { grid-area: panel; display: flex; flex-direction: column; min-height: 0; background: rgba(20,13,6,.95); border-left: 1px solid rgba(217,119,6,.35); transition: opacity .3s; }
   #panel, #panel * { touch-action: pan-y; }
@@ -572,6 +576,8 @@
   .grip:hover { color: #ffd27a; }
   .it.dragging { opacity: .25; }
   .it.ghost { position: fixed; z-index: 200; pointer-events: none; background: #2a1d0e; border-color: #ffd27a; box-shadow: 0 8px 24px rgba(0,0,0,.6); }
+  .addw { display: flex; gap: 6px; align-items: flex-end; }
+  .addw #add { flex: 1; }
   #add { resize: none; padding: 8px 10px; border-radius: 8px; border: 1px dashed rgba(217,119,6,.6); background: rgba(0,0,0,.2); color: inherit; font: inherit; font-weight: 700; }
   #add:focus { outline: none; border-style: solid; border-color: #ffd27a; }
   .kv { display: grid; grid-template-columns: 56px 1fr; align-items: center; gap: 10px; }
@@ -611,7 +617,7 @@
 <div id="vignette"></div>
 
 <div id="ui">
-  <button id="btn-spin" title="回す（Space）">回す</button>
+  <button id="btn-spin" title="回す（Space）">SPIN!</button>
 </div>
 
 <div id="fx"></div>
@@ -636,8 +642,7 @@
     <div class="setsel"><button id="set-btn" class="setbtn" aria-haspopup="true" aria-expanded="false"></button>
       <div id="set-pop" class="pop" hidden>
         <ul id="set-list"></ul>
-        <div class="pop-sec">＋ 新しい組</div>
-        <div class="pop-row"><button data-new="empty">空</button><button data-new="dinner">夕ごはん</button><button data-new="order">順番決め</button><button data-new="gacha">ガチャ</button></div>
+        <div class="pop-row pop-new"><button id="set-new">＋ 新しい組</button><button id="set-dup">この組を複製</button></div>
       </div>
     </div>
     <span class="sp"></span>
@@ -651,16 +656,16 @@
     <section id="p-items">
       <div class="prow"><button id="all-on" class="pbtn">全部乗せる</button><span class="sp"></span><label class="swl">当たったら外す <input type="checkbox" id="auto-off" class="sw"></label></div>
       <ul id="items"></ul>
-      <textarea id="add" rows="1" placeholder="＋ 候補を追加" aria-label="候補を追加"></textarea>
+      <div class="addw"><textarea id="add" rows="1" placeholder="＋ 候補を追加（改行でまとめて）" aria-label="候補を追加"></textarea><button id="add-go" class="pbtn" hidden>追加</button></div>
     </section>
     <section id="p-set" hidden>
       <label class="kv"><span>名前</span><input id="set-name" type="text" maxlength="30"></label>
       <div class="kv"><span>モード</span><div class="seg" id="mode-seg"><button data-v="normal">ふつう</button><button data-v="gacha">ガチャ</button></div></div>
-      <div class="prow"><button id="set-dup" class="pbtn">複製</button><span class="sp"></span><button id="set-del" class="pbtn warn">削除</button></div>
+      <div class="prow"><span class="sp"></span><button id="set-del" class="pbtn warn">この組を削除</button></div>
       <div id="ver" class="ver"></div>
     </section>
   </aside>
-  <div id="spinbar"><button id="btn-spin2">回す</button></div>
+  <div id="spinbar"><button id="btn-spin2" title="回す">SPIN!</button></div>
 </div>
 <button id="showui" title="表示（H）">表示（H）</button>
 <div id="loading">読み込み中…</div>
@@ -692,8 +697,6 @@ const LEADER_PALETTE = [
 const STORE_KEY = 'rouletteDX';
 const TEMPLATES = {
   dinner: () => ({ name: '今日の夕ごはん', items: ['カレー', 'ラーメン', '牛丼', 'ハンバーガー', 'ピザ', '寿司', '唐揚げ', 'コンビニ'] }),
-  order: () => ({ name: '順番決め', items: ['Aさん', 'Bさん', 'Cさん', 'Dさん'], autoOff: true }),
-  gacha: () => ({ name: 'ガチャ', items: ['特賞', 'A賞', 'B賞', 'C賞'], mode: 'gacha', tierOf: { 特賞: 0, A賞: 1, B賞: 2, C賞: 2 } }),
   empty: () => ({ name: '新しい組', items: [] }),
 };
 const newId = () => Math.random().toString(36).slice(2, 10);
@@ -1082,7 +1085,7 @@ const REACH_REL = { normal: 0.7, gold: 0.8, zebra: 0.9, rainbow: 1 };
 const SIGN_REL = 0.6;
 const PUSH_RATE = { normal: 0.2, gold: 0.5, zebra: 0.7, rainbow: 1 };   // PUSH は控えめ(押すのは主催者なので)
 // 全回転: 回すほど出やすくなり、出たら元に戻る(k 回目 = 5% × k、最大 60%)。だいたい5回に1回
-const ZENKAI_KEY = 'draftZenkaiCount';
+const ZENKAI_KEY = 'rouletteDXZenkai';   // ドラフト抽選版と同じサイト(github.io)なので名前を分ける
 let zenkaiCount = 0;
 try { zenkaiCount = Math.max(0, parseInt(localStorage.getItem(ZENKAI_KEY) || '0', 10) || 0); } catch (_) { /* 保存できない環境でも動く */ }
 function zenkaiRate() { return Math.min(0.6, 0.05 * (zenkaiCount + 1)); }
@@ -1146,22 +1149,19 @@ function planDraft(winner, n) {
 
 // 将棋の小ネタ(駒のステップアップ・駒群・巨大王将・振り駒)は将棋のテーマだけ
 const SHOGI = false;
-const quickPlan = () => ({ ...zenkaiPlan(), zenkaiten: false, ippatsu: true, heat: 'normal', heatPath: ['normal'] });
+document.body.classList.toggle('shogi', SHOGI);
 // ガチャの熱さ: 当たった等級で決まりやすい(超大当たりほど虹・ゼブラ・金、下の等級とはずれはほぼ通常)
 const GACHA_HEAT = [{ rainbow: 40, zebra: 25, gold: 30, normal: 5 }, { zebra: 10, gold: 45, normal: 45 }, { gold: 8, normal: 92 }, { gold: 5, normal: 95 }];
-const GACHA_KIND = [{ quick: 5, reach: 35, full: 60 }, { quick: 25, reach: 45, full: 30 }, { quick: 35, reach: 40, full: 25 }, { quick: 35, reach: 40, full: 25 }];
 function planFor(winner, n) {
   if (PREVIEW) return previewPlan(winner, n);
+  // ふつうは、ドラフト抽選版で調整した演出の確率をそのまま(一発決着・全回転・再抽選・リーチの熱さ・PUSH など)
+  const p = planDraft(winner, n);
   const tier = draft.tier ? draft.tier[winner] : -1;
-  // 回すたびに、すぐ止まる / リーチ / リーチ+PUSH のどれか(長さはばらばら)
-  const kind = pickW(tier >= 0 ? GACHA_KIND[tier] : { quick: 35, reach: 40, full: 25 });
-  if (kind === 'quick') return quickPlan();
-  let p = planDraft(winner, n);
   if (tier >= 0) {
-    // 全回転は「確定」の見せ方なので、上の2つの等級だけ
-    if (p.zenkaiten && tier >= 2) return quickPlan();
+    // ガチャ: リーチの熱さだけ等級で決まりやすくする(ほかの演出の確率はふつうと同じ)。全回転は上の2つの等級だけ
+    if (p.zenkaiten && tier >= 2) return { ...p, zenkaiten: false, ippatsu: true, heat: 'normal', heatPath: ['normal'] };
     if (tier >= 2) p.reachZenkai = false;
-    if (!p.zenkaiten) {
+    if (!p.zenkaiten && !p.ippatsu) {
       const heat = pickW(GACHA_HEAT[tier]);
       const other = () => { let i; do { i = Math.floor(Math.random() * n); } while (i === winner && n > 1); return i; };
       p.heat = heat; p.heatPath = [heat];
@@ -1170,9 +1170,6 @@ function planFor(winner, n) {
       p.push = chance(PUSH_RATE[heat]); p.mash = p.push && heat === 'rainbow';
     }
   }
-  if (kind === 'reach') { p.push = false; p.mash = false; }
-  p.full = kind === 'full';
-  if (!SHOGI) { p.steps = 0; p.swarm = false; p.gimmick = false; p.furigoma = -1; }
   return p;
 }
 // 抽選は暗号用の乱数で(偏りのないように、はみ出した分は引き直す)
@@ -1575,6 +1572,7 @@ function drawSprite() {
 }
 
 function drawKanji(ch, red) {
+  // 汎用のテーマの★は、起動時に redraw で描き直す(ここは文字の板を作るだけ)
   const S = 256, c = makeCanvas(S), x = c.getContext('2d');
   x.font = `200px 'Noto Sans JP', serif`; x.textAlign = 'center'; x.textBaseline = 'middle';
   x.fillStyle = red ? '#b00000' : '#1a0d00'; x.fillText(ch, S / 2, S / 2 + 8);
@@ -1831,6 +1829,17 @@ const pieceGeo = (() => {
   g.translate(0, 0, -0.07); return g;
 })();
 const woodMat = new THREE.MeshStandardMaterial({ color: 0xe9c27c, roughness: 0.55, metalness: 0.05 });
+// 汎用のテーマ: 駒の代わりに金のコイン(表に★、裏に赤い★)
+const coinGeo = new THREE.CylinderGeometry(0.42, 0.42, 0.2, 48).rotateX(Math.PI / 2);
+const coinMat = new THREE.MeshStandardMaterial({ color: 0xffd36a, metalness: 0.9, roughness: 0.28 });
+function applyGlyphs() {
+  const set = (g, big) => {
+    const [body, ...faces] = g.children;
+    body.geometry = SHOGI ? pieceGeo : coinGeo; body.material = big ? gimMat : SHOGI ? woodMat : coinMat;
+    for (const f of faces) f.position.y = SHOGI ? -0.05 : 0;
+  };
+  swarm.forEach((g) => set(g)); furi.forEach((g) => set(g)); set(gimmick, true);
+}
 const kanjiTex = PIECES.map((ch) => drawKanji(ch, false));
 const backTex = PIECES.map((ch) => (PROMOTED[ch] ? drawKanji(PROMOTED[ch], true) : null));
 // 字の板を表と裏に貼る(裏は駒の背面から見て正しい向きになるよう Y 軸で裏返す)
@@ -2197,6 +2206,7 @@ async function gemTease() {
 
 // 駒の格で上がる。上がるほど次のリーチが熱い(誰が勝つかは示さない)
 const KOMA = ['歩', '香', '桂', '銀', '金', '角', '飛', '玉'];
+const STEP_GLYPH = (s) => (SHOGI ? KOMA[s] : '★');
 const STEP_MS = 420;
 const stepDuration = (n) => (n ? n * STEP_MS + 700 : 0);
 async function stepUp(n) {
@@ -2207,7 +2217,7 @@ async function stepUp(n) {
     const last = s === n - 1;
     const w = document.createElement('div');
     w.className = `komaw f-plain${last && n >= 6 ? ' big' : ''}`;
-    w.innerHTML = `<div class="koma"><i>${KOMA[s]}</i></div>`;
+    w.innerHTML = `<div class="koma"><i>${STEP_GLYPH(s)}</i></div>`;
     box.appendChild(w);
     sound.step(Math.min(4, Math.floor(s * 5 / 8)));
     if (last && n >= 6) { flash('#fff', 0.3, n >= 8 ? 0.8 : 0.5); fx.shake = Math.max(fx.shake, n >= 8 ? 0.9 : 0.4); if (n >= 7) sound.holdChange(n - 3); }
@@ -2281,7 +2291,7 @@ async function startSpin() {
   // リーチ中(PUSH待ち)は、帯が指しているリーダーのマスの中で針を止める(そのまま止まればその人)。
   // そこから勝者のマスまで passK マス進む。0 = そのまま止まる / 1 = 隣へ入る / 2以上 = 通過して入る
   let reachLead = plan.leads.length ? plan.leads[plan.leads.length - 1] : winner;
-  let passK = passFrom(landIdx, reachLead, 7);
+  let passK = passFrom(landIdx, reachLead, draft.weights ? 7 : SL.length);
   // 待つマスが遠すぎる(ガチャで等級ごとに並んでいるときなど)ときは、近くのマスの人で待つ
   if (passK < 0) { passK = pickW({ 0: 3, 1: 4, 2: 2, 3: 1 }) | 0; reachLead = leaderOf(landIdx - passK); if (plan.leads.length) plan.leads[plan.leads.length - 1] = reachLead; }
   if (passK === 0 && n <= 4 && chance(0.15)) { const k2 = passFrom(landIdx - 1, reachLead); if (k2 >= 0) passK = k2 + 1; }   // たまに一周して同じ人へ戻る
@@ -2294,13 +2304,11 @@ async function startSpin() {
   // 針が最後に越える境目(止まっているマスの次)
   const entryIdx = mod(landIdx - passK + 1, total);
 
-  // 開幕(たっぷりのときだけ): 組の名前と候補の数
-  if (plan.full) {
-    flash('#fff6d0', 0.35, 0.35);
-    sound.reach(2);
-    cutin(draft.pick, 't-gold', { dur: 1500, gloss: 'gold', sub: `${n}択!!` });
-    await sleep(1500);
-  }
+  // 開幕: 組の名前と候補の数(ドラフト版の「指名者・N チーム競合」にあたる)
+  flash('#fff6d0', 0.35, 0.35);
+  sound.reach(2);
+  cutin(draft.pick, 't-gold', { dur: 1500, gloss: 'gold', sub: `${n}択!!` });
+  await sleep(1500);
 
   if (plan.zenkaiten) { await zenkaiten(mode, landAngle, winner); return finish(winner); }
   if (plan.ippatsu) {
@@ -2381,13 +2389,13 @@ async function furigomaFx(tokin) {
   const flips = [0, 1, 2, 3, 4].sort(() => Math.random() - 0.5).slice(0, tokin);
   furiAnim = { t: 0, items: furi.map((g, i) => ({ g, delay: i * 0.09, x: (i - 2) * 1.9, back: flips.includes(i), spin: 3 + Math.floor(rand(0, 3)), land: false })) };
   furi.forEach((g) => { g.visible = true; });
-  cutin('振り駒', 't-white', { dur: 900, small: true });
+  cutin(SHOGI ? '振り駒' : 'コイントス', 't-white', { dur: 900, small: true });
   sound.swarm();
   await sleep(2100);
   const t = tokin >= 5 ? 't-rainbow' : tokin >= 4 ? 't-gold' : tokin >= 2 ? 't-red' : 't-blue';
   // と が3枚以上 = 次のリーチは金以上(帯の信頼度が上がる)ので、その意味を添える
   const sub = tokin >= 5 ? 'リーチ信頼度MAX!!' : tokin >= 3 ? 'リーチ信頼度UP!' : '';
-  cutin(`と ×${tokin}`, t, { dur: sub ? 1500 : 1100, small: true, gloss: tokin >= 2 ? (tokin >= 5 ? 'rainbow' : tokin >= 4 ? 'gold' : 'red') : null, sub });
+  cutin(SHOGI ? `と ×${tokin}` : `★ ×${tokin}`, t, { dur: sub ? 1500 : 1100, small: true, gloss: tokin >= 2 ? (tokin >= 5 ? 'rainbow' : tokin >= 4 ? 'gold' : 'red') : null, sub });
   if (tokin >= 3) { flash('#fff', 0.4, 0.6); fx.shake = 0.8; sound.holdChange(tokin); }
   await sleep(sub ? 1700 : 1300);
   furiAnim = null;
@@ -2550,7 +2558,7 @@ async function runReach(plan, mode, entryIdx, landAngle, prelude, winner) {
     plan.leads = [soloLead];
     plan.solo = true;
     const landIdx = sliceAt(landAngle);
-    let passK = passFrom(landIdx, soloLead, 7);
+    let passK = passFrom(landIdx, soloLead, draft.weights ? 7 : SL.length);
     if (passK < 0) { passK = pickW({ 0: 3, 1: 4, 2: 2 }) | 0; soloLead = leaderOf(landIdx - passK); plan.leads = [soloLead]; }
     const at = (f) => SL[landIdx].a0 + f * sliceW(landIdx);
     if (passK === 0) { plan.pattern = 'stay'; landAngle = at(rand(0.84, 0.95)); }
@@ -3348,10 +3356,11 @@ ul0.addEventListener('change', (e) => {
 ul0.addEventListener('keydown', (e) => {
   const x = e.target;
   if (e.key !== 'Enter' || e.isComposing) return;
+  if (x.classList.contains('add-t') && !(e.ctrlKey || e.metaKey)) return;   // 改行はそのまま
   if (x.classList.contains('nm') || x.classList.contains('tn') || x.classList.contains('tp')) { e.preventDefault(); x.blur(); }
-  else if (x.classList.contains('add-t') && !e.shiftKey) { e.preventDefault(); const k = +x.dataset.tier; const v = x.value; x.value = ''; addItems(v, k); ul0.querySelector(`.add-t[data-tier="${k}"]`)?.focus(); }
+  else if (x.classList.contains('add-t') && (e.ctrlKey || e.metaKey)) { e.preventDefault(); const k = +x.dataset.tier; const v = x.value; x.value = ''; addItems(v, k); ul0.querySelector(`.add-t[data-tier="${k}"]`)?.focus(); }
 });
-ul0.addEventListener('input', (e) => { const x = e.target; if (x.classList.contains('add-t') && x.value.includes('\n')) { const k = +x.dataset.tier; const v = x.value; x.value = ''; addItems(v, k); ul0.querySelector(`.add-t[data-tier="${k}"]`)?.focus(); } });
+ul0.addEventListener('input', (e) => { const x = e.target; if (x.classList.contains('add-t')) growAdd(x); });
 ul0.addEventListener('focusout', (e) => { const x = e.target; if (x.classList.contains('add-t') && x.value.trim()) { const v = x.value; x.value = ''; addItems(v, +x.dataset.tier); } });
 ul0.addEventListener('click', (e) => { const b = e.target.closest('.del'); if (b) removeItem(b.closest('.it').dataset.name); });
 
@@ -3366,7 +3375,6 @@ ul0.addEventListener('pointerdown', (e) => {
   document.body.appendChild(ghost);
   li.classList.add('dragging');
   const dy = e.clientY - r0.top;
-  g.setPointerCapture(e.pointerId);
   const move = (ev) => {
     ghost.style.top = `${ev.clientY - dy}px`;
     // 指している行の上半分より上なら、その行の前へ。等級の見出しの前なら、ひとつ上の等級の最後(追加の欄の前)へ
@@ -3382,7 +3390,7 @@ ul0.addEventListener('pointerdown', (e) => {
     if (ev.clientY < rr.top + 24) ul0.scrollTop -= 8; else if (ev.clientY > rr.bottom - 24) ul0.scrollTop += 8;
   };
   const up = () => {
-    g.removeEventListener('pointermove', move); g.removeEventListener('pointerup', up); g.removeEventListener('pointercancel', up);
+    removeEventListener('pointermove', move); removeEventListener('pointerup', up); removeEventListener('pointercancel', up);
     ghost.remove(); li.classList.remove('dragging');
     const set = curSet();
     let tier = 0;
@@ -3394,14 +3402,18 @@ ul0.addEventListener('pointerdown', (e) => {
     set.items = order;
     commit();
   };
-  g.addEventListener('pointermove', move); g.addEventListener('pointerup', up); g.addEventListener('pointercancel', up);
+  addEventListener('pointermove', move); addEventListener('pointerup', up); addEventListener('pointercancel', up);
 });
 
 // 追加の欄(ふつう): Enter で足す。複数行を貼ったら1行ずつ候補に
 const add = $('add');
-add.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); addItems(add.value); add.value = ''; } });
-add.addEventListener('input', () => { if (add.value.includes('\n')) { addItems(add.value); add.value = ''; } });
-add.addEventListener('blur', () => { if (add.value.trim()) { addItems(add.value); add.value = ''; } });
+// 行の数に合わせて欄を伸ばす(8行まで)
+const growAdd = (x) => { x.rows = Math.min(8, Math.max(1, x.value.split('\n').length)); };
+const flushAdd = () => { if (add.value.trim()) addItems(add.value); add.value = ''; growAdd(add); $('add-go').hidden = true; };
+add.addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && !e.isComposing) { e.preventDefault(); flushAdd(); } });
+add.addEventListener('input', () => { growAdd(add); $('add-go').hidden = !add.value.trim(); });
+add.addEventListener('blur', (e) => { if (e.relatedTarget !== $('add-go')) flushAdd(); });
+$('add-go').addEventListener('click', flushAdd);
 $('all-on').addEventListener('click', () => { const set = curSet(); if (Object.keys(set.off).length) { set.off = {}; commit(); } });
 $('auto-off').addEventListener('change', (e) => { curSet().autoOff = e.target.checked; saveStore(); });
 
@@ -3448,11 +3460,12 @@ $('set-btn').addEventListener('click', (e) => {
 });
 $('set-pop').addEventListener('click', (e) => e.stopPropagation());
 document.addEventListener('click', closePop);
-document.querySelectorAll('[data-new]').forEach((b) => b.addEventListener('click', () => {
-  const x = makeSet(TEMPLATES[b.dataset.new]());
+$('set-new').addEventListener('click', () => {
+  const x = makeSet(TEMPLATES.empty());
   store.sets.push(x); switchSet(x.id);
-  if (b.dataset.new === 'empty') setTimeout(() => $('add').focus(), 50);
-}));
+  document.querySelector('.ptabs [data-p="items"]').click();
+  setTimeout(() => $('add').focus(), 50);
+});
 $('set-name').addEventListener('change', (e) => { const v = e.target.value.trim().slice(0, 30); if (!v) { e.target.value = curSet().name; return; } curSet().name = v; saveStore(); renderSetBtn(); refreshWheel(); });
 $('set-name').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.isComposing) e.target.blur(); });
 $('mode-seg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b || curSet().mode === b.dataset.v) return; curSet().mode = b.dataset.v; renderSetPanel(); commit(); });
@@ -3463,7 +3476,7 @@ $('set-dup').addEventListener('click', () => {
 });
 // 削除は2回押し(確認の窓は出さない)
 let delTimer = null;
-function disarmDel() { clearTimeout(delTimer); $('set-del').classList.remove('armed'); $('set-del').textContent = '削除'; }
+function disarmDel() { clearTimeout(delTimer); $('set-del').classList.remove('armed'); $('set-del').textContent = 'この組を削除'; }
 $('set-del').addEventListener('click', () => {
   const b = $('set-del');
   if (store.sets.length < 2) return;
@@ -3538,7 +3551,8 @@ document.addEventListener('touchend', (e) => {
     ]);
   } catch (_) { /* フォント無しでも続行 */ }
   const redraw = (t, ch, red) => { if (!t) return; const c = t.image; const x = c.getContext('2d'); x.clearRect(0, 0, c.width, c.height); x.font = `900 200px 'Noto Sans JP', serif`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = red ? '#b00000' : '#1a0d00'; x.fillText(ch, c.width / 2, c.height / 2 + 8); t.needsUpdate = true; };
-  PIECES.forEach((ch, i) => { redraw(kanjiTex[i], ch, false); redraw(backTex[i], PROMOTED[ch], true); });
+  PIECES.forEach((ch, i) => { redraw(kanjiTex[i], SHOGI ? ch : ch === '歩' ? '○' : '★', false); redraw(backTex[i], SHOGI ? PROMOTED[ch] : '★', true); });
+  applyGlyphs();
   await loadDraftImage();
   syncDraft();
   applySet();
