@@ -485,12 +485,12 @@
   #safe-probe { position: fixed; bottom: 0; height: 0; padding-bottom: env(safe-area-inset-bottom, 0px); visibility: hidden; pointer-events: none; }
   /* 演出確認モード(?preview) */
   #pv-badge {
-    position: fixed; top: 52px; left: 16px; z-index: 90; pointer-events: none;
+    position: fixed; top: 56px; left: 12px; z-index: 90; pointer-events: none;
     padding: 4px 14px; border-radius: 10px; background: #c00; color: #fff;
     font: 900 13px 'Noto Sans JP', sans-serif; letter-spacing: .08em; box-shadow: 0 2px 10px rgba(0,0,0,.5);
   }
   #pv {
-    position: fixed; right: 10px; top: 50%; transform: translateY(-50%); z-index: 80; width: 270px; max-height: calc(100% - 60px); overflow: auto;
+    position: fixed; left: 12px; top: 92px; z-index: 80; width: 270px; max-height: calc(100% - 104px); overflow: auto;
     padding: 10px 12px; border-radius: 12px; background: rgba(10,10,18,.88); border: 1px solid rgba(255,255,255,.2);
     color: #eee; font: 700 12px 'Noto Sans JP', sans-serif; box-shadow: 0 6px 30px rgba(0,0,0,.6);
   }
@@ -3184,11 +3184,11 @@ function buildPreviewPanel() {
   <label data-r>帯が指す人 <select id="pv-lead"><option value="auto">おまかせ(本番と同じ)</option><option value="win">勝者</option><option value="other">別の人</option><option value="flip">別の人→勝者(寝返り)</option></select></label>
   <label data-r>昇格 <select id="pv-up"><option value="0">なし</option><option value="1">通常から昇格</option></select></label>
   <hr>
-  <label data-r>振り駒の「と」 <select id="pv-furi"><option value="-1">なし</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+  <label data-r>${SHOGI ? '振り駒の「と」' : 'コイントスの金'} <select id="pv-furi"><option value="-1">なし</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
   <label data-r>ステップアップ <input type="number" id="pv-steps" min="0" max="8" value="4"></label>
   <label data-r>擬似連 <input type="number" id="pv-pseudo" min="0" max="3" value="1"></label>
-  <label data-r>駒群予告 <input type="checkbox" id="pv-swarm"></label>
-  <label data-r>役物落下 <input type="checkbox" id="pv-gim"></label>
+  <label data-r>${SHOGI ? '駒群予告' : 'カプセル群'} <input type="checkbox" id="pv-swarm"></label>
+  <label data-r>${SHOGI ? '役物落下' : '大カプセル落下'} <input type="checkbox" id="pv-gim"></label>
   <label data-r>激熱 <input type="checkbox" id="pv-geki" checked></label>
   <label data-r>PUSH <input type="checkbox" id="pv-push"></label>
   <label data-r>連打 <input type="checkbox" id="pv-mash"></label>
