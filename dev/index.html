@@ -188,6 +188,8 @@
 
 
   /* Result */
+  #meteor { position: absolute; left: 0; top: 0; width: 100%; height: 100%; z-index: 45; pointer-events: none; }
+  #result.meteor .rbg { background: radial-gradient(circle, rgba(0,0,0,0) 30%, rgba(60,20,0,.25)) !important; }
   #result { position: fixed; inset: 0; z-index: 50; display: none; align-items: center; justify-content: center; cursor: pointer; }
   #result.show { display: flex; }
   #result .rbg { position: absolute; inset: 0; background: radial-gradient(circle, rgba(0,0,0,.25), rgba(0,0,0,.7)); animation: fadeIn .4s both; }
@@ -485,7 +487,7 @@
   #safe-probe { position: fixed; bottom: 0; height: 0; padding-bottom: env(safe-area-inset-bottom, 0px); visibility: hidden; pointer-events: none; }
   /* 演出確認モード(?preview) */
   #pv-badge {
-    position: fixed; top: 56px; left: 12px; z-index: 90; pointer-events: none;
+    position: fixed; top: 56px; left: 12px; z-index: 15; pointer-events: none;
     padding: 4px 14px; border-radius: 10px; background: #c00; color: #fff;
     font: 900 13px 'Noto Sans JP', sans-serif; letter-spacing: .08em; box-shadow: 0 2px 10px rgba(0,0,0,.5);
   }
@@ -524,6 +526,11 @@
   .setbtn { padding: 5px 12px; border-radius: 8px; border: 1px solid #d9a420; background: rgba(255,210,122,.08); max-width: 46vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .pop { position: absolute; left: 0; top: calc(100% + 6px); width: 300px; padding: 10px; border-radius: 10px; background: #1d140a; border: 1px solid #a8741a; box-shadow: 0 10px 30px rgba(0,0,0,.6); z-index: 5; }
   .pop ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; max-height: 50vh; overflow: auto; }
+  .pop li { display: flex; gap: 4px; }
+  .pop li .sname { flex: 1; min-width: 0; }
+  .pop li .sdel { width: auto; flex: none; padding: 0 9px; color: #c9b089 !important; white-space: nowrap; }
+  .pop li .sdel:hover { background: rgba(255,80,40,.2); color: #fff !important; }
+  .pop li .sdel.armed { background: #9b2a12; border-color: #f08a72; color: #fff !important; font-size: 12px; }
   .pop li button { width: 100%; text-align: left; padding: 7px 10px; border-radius: 7px; border: 1px solid rgba(217,119,6,.3); background: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .pop li button[aria-current="true"] { border-color: #ffd27a; background: rgba(255,210,122,.12); }
   .pop-sec { margin: 10px 0 6px; padding-top: 8px; border-top: 1px solid rgba(217,119,6,.3); font-weight: 400; color: #c9b089; }
@@ -1180,6 +1187,7 @@ let THEME = 'treasure', SHOGI = false;
 const GACHA_HEAT = [{ rainbow: 40, zebra: 25, gold: 30, normal: 5 }, { zebra: 10, gold: 45, normal: 45 }, { gold: 8, normal: 92 }, { gold: 5, normal: 95 }];
 function planFor(winner, n) {
   if (PREVIEW) return previewPlan(winner, n);
+  if (chance(METEOR_RATE)) return { ...zenkaiPlan(), zenkaiten: false, meteor: true };
   // ふつうは、ドラフト抽選版で調整した演出の確率をそのまま(一発決着・全回転・再抽選・リーチの熱さ・PUSH など)
   const p = planDraft(winner, n);
   const tier = draft.tier ? draft.tier[winner] : -1;
@@ -2459,6 +2467,7 @@ async function startSpin() {
   // 針が最後に越える境目(止まっているマスの次)
   const entryIdx = mod(landIdx - passK + 1, total);
 
+  if (plan.meteor) { await meteorFx(winner, landIdx); return finish(winner); }
   // 開幕: 組の名前と候補の数(ドラフト版の「指名者・N チーム競合」にあたる)
   flash('#fff6d0', 0.35, 0.35);
   sound.reach(2);
@@ -2520,6 +2529,205 @@ async function startSpin() {
   }
   if (await runReach(plan, mode, entryIdx, landAngle, prelude, winner) === 'zenkai') await zenkaiten(mode, landAngle, winner, true);
   return finish(winner);
+}
+
+/* ---------------------------------------------------------------------
+ *  流星(レア): ルーレットが夜空へ飛んでいき、候補が流れ星になって追いかけ、
+ *  空でひとつの光の玉になって弾け、黄金の景色の中で当たりが決まる(麻雀ゲームの役満の演出のオマージュ)
+ *  結果は回す前に決まっている。この演出は見せ方だけ
+ * ------------------------------------------------------------------- */
+const METEOR_RATE = 0.02;
+let meteor = null;   // { cv, landIdx }
+const ease3 = (x) => 1 - (1 - Math.min(1, Math.max(0, x))) ** 3;
+const clamp01 = (x) => Math.min(1, Math.max(0, x));
+function meteorTile(x, cx, cy, w, h, name, gold, glow) {
+  x.save(); x.translate(cx, cy);
+  if (glow > 0) {
+    const g = x.createRadialGradient(0, 0, 0, 0, 0, Math.max(w, h) * 1.3);
+    g.addColorStop(0, `rgba(255,240,170,${0.55 * glow})`); g.addColorStop(1, 'rgba(255,200,80,0)');
+    x.fillStyle = g; x.fillRect(-w * 1.5, -h * 1.5, w * 3, h * 3);
+  }
+  const r = Math.min(w, h) * 0.16;
+  x.fillStyle = 'rgba(0,0,0,.35)'; x.beginPath(); x.roundRect(-w / 2 + 3, -h / 2 + 6, w, h, r); x.fill();
+  const body = x.createLinearGradient(0, -h / 2, 0, h / 2);
+  body.addColorStop(0, gold ? '#fff6cf' : '#ffffff'); body.addColorStop(0.8, gold ? '#ffd45a' : '#ecebe6'); body.addColorStop(1, gold ? '#d99a1c' : '#c9c7bf');
+  x.fillStyle = body; x.beginPath(); x.roundRect(-w / 2, -h / 2, w, h, r); x.fill();
+  x.lineWidth = Math.max(2, w * 0.025); x.strokeStyle = gold ? '#a86a00' : '#b8b4a8'; x.stroke();
+  // 名前(横書き、幅に収める)
+  let fs = h * 0.42; x.font = `${fs}px 'Dela Gothic One', 'Noto Sans JP', sans-serif`;
+  const tw = x.measureText(name).width, mw = w * 0.84;
+  if (tw > mw) { fs *= mw / tw; x.font = `${fs}px 'Dela Gothic One', 'Noto Sans JP', sans-serif`; }
+  x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = gold ? '#7a2a00' : '#2a1a10';
+  x.fillText(name, 0, h * 0.04);
+  x.restore();
+}
+// 流れ星の尾: 頭から下へ、揺れながら細くなる光の帯
+function meteorTail(x, hx, hy, len, wid, t, ph, col) {
+  x.save(); x.globalCompositeOperation = 'lighter';
+  for (let i = 18; i >= 0; i--) {
+    const s = i / 18, y = hy + s * len, xx = hx + Math.sin(t * 9 + ph + s * 6) * wid * 0.5 * s;
+    const w = wid * (1 - s) ** 0.8 + 2;
+    const g = x.createRadialGradient(xx, y, 0, xx, y, w);
+    g.addColorStop(0, `rgba(${col},${0.32 * (1 - s)})`); g.addColorStop(1, `rgba(${col},0)`);
+    x.fillStyle = g; x.beginPath(); x.ellipse(xx, y, w, w * 1.4, 0, 0, TAU); x.fill();
+  }
+  x.restore();
+}
+function meteorGlow(x, cx, cy, r, inner, outer, a = 1) {
+  x.save(); x.globalCompositeOperation = 'lighter';
+  const g = x.createRadialGradient(cx, cy, 0, cx, cy, r);
+  g.addColorStop(0, `rgba(${inner},${a})`); g.addColorStop(0.35, `rgba(${outer},${0.55 * a})`); g.addColorStop(1, `rgba(${outer},0)`);
+  x.fillStyle = g; x.fillRect(cx - r, cy - r, r * 2, r * 2);
+  x.restore();
+}
+// 小さなルーレット(流れ星の頭): 候補の色の扇と金の縁
+function meteorWheel(x, cx, cy, r, rot) {
+  x.save(); x.translate(cx, cy); x.rotate(rot);
+  for (const s of SL) { x.beginPath(); x.moveTo(0, 0); x.arc(0, 0, r, -s.a0, -s.a1, true); x.closePath(); x.fillStyle = leaderColor(s.lead); x.fill(); }
+  x.lineWidth = r * 0.14; x.strokeStyle = '#ffd24a'; x.beginPath(); x.arc(0, 0, r, 0, TAU); x.stroke();
+  x.fillStyle = '#fff2b0'; x.beginPath(); x.arc(0, 0, r * 0.22, 0, TAU); x.fill();
+  x.restore();
+}
+async function meteorFx(winner, landIdx) {
+  const st = $('stage'), W = Math.round(parseFloat(st.style.width) || 1920), H = Math.round(parseFloat(st.style.height) || 1080), n = draft.leaders.length;
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H; cv.id = 'meteor';
+  $('stage').appendChild(cv);
+  meteor = { cv, landIdx };
+  const x = cv.getContext('2d');
+  sound.init();
+  // 1) 回り出したルーレットが、光って夜空へ飛び立つ
+  fx.bulb = 'spin'; fx.ambientRate = AMB_SPIN; sound.spinStart();
+  play([{ dur: 6, p0: phi, p1: phi + TAU * 9, ease: E.outCubic }]);
+  await sleep(1300);
+  sound.kyuin(); flash('#fff', 0.5, 0.9); fx.shake = 1.2;
+  const t0 = performance.now();
+  await new Promise((resolve) => {
+    const step = (now) => {
+      const s = clamp01((now - t0) / 900);
+      wheelRoot.position.set(0, 7 * ease3(s) ** 1.5, -26 * s * s);
+      wheelRoot.scale.setScalar(1 - 0.75 * s);
+      const p = wheelRoot.getWorldPosition(tmpV);
+      for (let i = 0; i < 10; i++) sparks.emit(p.x + rand(-1, 1), p.y - 1.5, p.z, rand(-1, 1), rand(-6, -2), rand(1, 4), AMB.light, rand(0.2, 0.6), rand(0.4, 1), 0, 0.95);
+      cv.style.opacity = clamp01((s - 0.55) / 0.45);
+      if (s < 1) requestAnimationFrame(step); else resolve();
+    };
+    cv.style.opacity = 0; requestAnimationFrame(step);
+  });
+  wheelRoot.visible = false;
+  sound.swell(5.5);
+
+  // 2〜5) 夜空の中(2D で描く)
+  const streaks = Array.from({ length: 70 }, () => ({ x: rand(-200, W + 200), y: rand(0, H), sp: rand(1.6, 3.4), len: rand(60, 220), a: rand(0.12, 0.5) }));
+  const dust = Array.from({ length: 120 }, () => ({ x: rand(0, W), y: rand(0, H), sp: rand(0.2, 1), r: rand(0.8, 2.4) }));
+  const show = draft.leaders.slice(0, 12);                     // 追いかける候補(多いときは12まで)
+  const wi = winner < show.length ? winner : show.length - 1; // 当たりは必ず混ぜる
+  if (winner >= show.length) show[wi] = draft.leaders[winner];
+  const comets = show.map((nm, i) => ({ nm, i, ph: rand(0, TAU), x0: W / 2 + (i - (show.length - 1) / 2) * Math.min(150, 1500 / show.length), dl: rand(0, 0.5) + Math.abs(i - (show.length - 1) / 2) * 0.08 }));
+  const CX = W / 2, CY = H * 0.37;
+  const TT = 7.4;   // 夜空の長さ(秒)
+  let flashed = false;
+  await new Promise((resolve) => {
+    const s0 = performance.now();
+    const draw = (now) => {
+      const t = (now - s0) / 1000;
+      // 夜空
+      const sky = x.createLinearGradient(0, 0, 0, H);
+      sky.addColorStop(0, '#01040c'); sky.addColorStop(0.6, '#04142a'); sky.addColorStop(1, '#0a2c48');
+      x.globalCompositeOperation = 'source-over'; x.fillStyle = sky; x.fillRect(0, 0, W, H);
+      const speed = t < 5 ? 1 : Math.max(0.15, 1 - (t - 5) / 1.5);
+      x.save(); x.globalCompositeOperation = 'lighter';
+      for (const s of streaks) {
+        s.y += s.sp * 16 * speed; if (s.y > H + s.len) { s.y = -s.len; s.x = rand(-200, W + 200); }
+        const ang = (s.x - CX) / W * 0.6;
+        x.strokeStyle = `rgba(190,225,255,${s.a})`; x.lineWidth = 1.5;
+        x.beginPath(); x.moveTo(s.x, s.y); x.lineTo(s.x + Math.sin(ang) * s.len, s.y - Math.cos(ang) * s.len); x.stroke();
+      }
+      for (const d of dust) { d.y += d.sp * 3 * speed; if (d.y > H) d.y = 0; x.fillStyle = 'rgba(200,230,255,.5)'; x.beginPath(); x.arc(d.x, d.y, d.r, 0, TAU); x.fill(); }
+      x.restore();
+      // 先頭の流れ星(ルーレット): 下から上がってきて、空の真ん中で待つ
+      const conv = clamp01((t - 4.1) / 1.4);          // 集まる
+      const lead = t < 4.1 ? ease3(t / 1.6) : 1;
+      const hx = CX + Math.sin(t * 1.3) * 30 * (1 - conv), hy = H + 80 - (H + 80 - CY) * lead;
+      if (conv < 1) {
+        meteorTail(x, hx, hy + 30, 520, 70, t, 0, '255,230,150');
+        meteorGlow(x, hx, hy, 150, '255,255,235', '255,200,90');
+        meteorWheel(x, hx, hy, 44 * (1 - conv * 0.7), t * 6);
+      }
+      // 候補の流れ星: あとから下から追いかけ、最後は先頭に吸い込まれる
+      for (const c of comets) {
+        const ts = t - 1.7 - c.dl;
+        if (ts < 0) continue;
+        const up = ease3(ts / 2.2);
+        let cx = c.x0 + Math.sin(t * 2 + c.ph) * 22, cy = H + 120 - (H + 120 - (CY + 330)) * up;
+        cx += (hx - cx) * ease3(conv); cy += (hy - cy) * ease3(conv);
+        const sc = 1 - 0.85 * ease3(conv), gold = c.i === wi;
+        meteorTail(x, cx, cy + 40 * sc, 380 * sc, 46 * sc, t, c.ph, gold ? '255,215,110' : '200,230,255');
+        meteorGlow(x, cx, cy, 90 * sc, '255,250,230', gold ? '255,190,70' : '160,210,255', 0.8);
+        meteorTile(x, cx, cy, 150 * sc, 70 * sc, c.nm, gold, 0);
+      }
+      // 光の玉: 集まったところでふくらみ、横に光の筋
+      const orb = clamp01((t - 5.2) / 1.4);
+      if (orb > 0) {
+        const r = 40 + 240 * ease3(orb), pul = 1 + 0.05 * Math.sin(t * 18);
+        meteorGlow(x, CX, CY, r * 2.6 * pul, '255,255,230', '190,230,120', 0.75);
+        x.save(); x.globalCompositeOperation = 'lighter';
+        const g = x.createRadialGradient(CX, CY, 0, CX, CY, r);
+        g.addColorStop(0, 'rgba(255,255,245,1)'); g.addColorStop(0.55, 'rgba(245,250,190,.85)'); g.addColorStop(0.92, 'rgba(210,235,140,.55)'); g.addColorStop(1, 'rgba(230,250,200,.9)');
+        x.fillStyle = g; x.beginPath(); x.arc(CX, CY, r * pul, 0, TAU); x.fill();
+        const fl = x.createLinearGradient(CX - 700, 0, CX + 700, 0);
+        fl.addColorStop(0, 'rgba(255,255,220,0)'); fl.addColorStop(0.5, `rgba(255,255,240,${0.9 * orb})`); fl.addColorStop(1, 'rgba(255,255,220,0)');
+        x.fillStyle = fl; x.beginPath(); x.ellipse(CX, CY, 700, 10 + 8 * orb, 0, 0, TAU); x.fill();
+        x.restore();
+      }
+      if (t > TT - 0.6 && !flashed) { flashed = true; flash('#fffbe0', 1.2, 1); sound.kakutei(); fx.shake = 1.5; }
+      if (t < TT) requestAnimationFrame(draw); else resolve();
+    };
+    requestAnimationFrame(draw);
+  });
+
+  // 6) 黄金の景色: 光の中から、当たりの札が手前の列で輝く。続けて「〇〇に決定!!」
+  const s1 = performance.now();
+  meteor.raf = 0;
+  const gold = (now) => {
+    const t = (now - s1) / 1000;
+    const bg = x.createRadialGradient(CX, CY - 70, 0, CX, CY - 70, 1300);
+    bg.addColorStop(0, '#fff8d0'); bg.addColorStop(0.25, '#ffd24a'); bg.addColorStop(0.6, '#f08a00'); bg.addColorStop(1, '#6a2400');
+    x.globalCompositeOperation = 'source-over'; x.fillStyle = bg; x.fillRect(0, 0, W, H);
+    x.save(); x.translate(CX, CY - 70); x.rotate(t * 0.08); x.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 24; i++) { x.rotate(TAU / 24); x.fillStyle = 'rgba(255,240,180,.10)'; x.beginPath(); x.moveTo(0, 0); x.lineTo(1600, -90); x.lineTo(1600, 90); x.closePath(); x.fill(); }
+    x.restore();
+    // ゆらめく炎の帯(下から)
+    for (let k = 0; k < 4; k++) {
+      x.fillStyle = ['rgba(255,170,30,.35)', 'rgba(230,110,10,.35)', 'rgba(180,60,0,.4)', 'rgba(110,30,0,.5)'][k];
+      x.beginPath(); x.moveTo(0, H);
+      for (let px = 0; px <= W; px += 40) x.lineTo(px, H - 360 + k * 80 + Math.sin(px / 170 + t * (1.2 + k * 0.3) + k) * 40 + Math.sin(px / 61 - t * 2) * 12);
+      x.lineTo(W, H); x.closePath(); x.fill();
+    }
+    // 太陽の輪
+    x.save(); x.globalCompositeOperation = 'lighter';
+    x.strokeStyle = 'rgba(255,255,230,.55)'; x.lineWidth = 6; x.beginPath(); x.arc(CX, CY - 70, 210 + Math.sin(t * 2) * 6, 0, TAU); x.stroke();
+    x.restore();
+    // 手前の札の列(当たりは金で、せり上がって輝く)
+    const m = draft.leaders.length, tw = Math.min(170, (W - 120) / m / 1.06), th = tw * 0.62, gap = tw * 0.06;
+    const total = m * tw + (m - 1) * gap;
+    draft.leaders.forEach((nm, i) => {
+      const win = i === winner, rise = win ? -26 * ease3(t / 0.6) : 0;
+      meteorTile(x, CX - total / 2 + tw / 2 + i * (tw + gap), H - 90 + rise + Math.max(0, 1 - t * 2.5 - i * 0.05) * 200, tw, th, nm, win, win ? 0.7 + 0.3 * Math.sin(t * 6) : 0);
+    });
+    if (meteor) meteor.raf = requestAnimationFrame(gold);
+  };
+  meteor.raf = requestAnimationFrame(gold);
+  $('result').classList.add('meteor');
+  // 閉じたときに戻す盤の位置(当たりのマスを針に)
+  phi = (SL[landIdx].a0 + SL[landIdx].a1) / 2 - Math.PI / 2;
+  await sleep(900);
+}
+function endMeteor() {
+  if (!meteor) return;
+  cancelAnimationFrame(meteor.raf);
+  meteor.cv.remove(); meteor = null;
+  $('result').classList.remove('meteor');
+  wheelRoot.visible = true; wheelRoot.position.set(0, 0, 0); wheelRoot.scale.setScalar(1);
 }
 
 /* ---------- 振り駒: 歩を5枚投げて、「と」の枚数で期待度を匂わせる(勝者とは無関係) ---------- */
@@ -2957,6 +3165,7 @@ function closeResult() {
   document.body.classList.remove('result-open');
   fx.winT = 0; fx.bulb = 'idle'; fx.cam = 'base'; fx.faceGlowT = 1; fx.ambientRate = AMB_IDLE; fx.dimT = 0;
   removeZenOverlay();
+  endMeteor();
   setHold('none');
   // 当たったら外す: 結果を閉じたときに外す(結果の後ろで盤が変わらないように)
   const set = curSet();
@@ -3316,7 +3525,7 @@ function buildPreviewPanel() {
   <label>種類 <select id="pv-kind">
     <option value="reach">リーチ</option><option value="edge">境目フリーズ</option><option value="restart">再抽選</option>
     <option value="rfreeze">リーチ中フリーズ</option><option value="rzenkai">リーチから全回転</option><option value="zenkai">全回転</option>
-    <option value="ippatsu">一発決着</option><option value="random">おまかせ</option></select></label>
+    <option value="ippatsu">一発決着</option><option value="meteor">流星（レア）</option><option value="random">おまかせ</option></select></label>
   <label data-r>リーチの熱さ <select id="pv-heat"><option value="normal">通常</option><option value="gold">金</option><option value="zebra">ゼブラ</option><option value="rainbow">虹</option></select></label>
   <label data-r>帯が指す人 <select id="pv-lead"><option value="auto">おまかせ(本番と同じ)</option><option value="win">勝者</option><option value="other">別の人</option><option value="flip">別の人→勝者(寝返り)</option></select></label>
   <label data-r>昇格 <select id="pv-up"><option value="0">なし</option><option value="1">通常から昇格</option></select></label>
@@ -3355,6 +3564,7 @@ function buildPreviewPanel() {
 function previewPlan(winner, n) {
   const v = (id) => $(id).value, on = (id) => $(id).checked;
   const kind = v('pv-kind');
+  if (kind === 'meteor') return { ...zenkaiPlan(), zenkaiten: false, meteor: true };
   if (kind === 'random') {
     // 全回転の回数カウントは本番用なので、確認モードでは動かさない
     const keep = zenkaiCount; const p = planDraft(winner, n); zenkaiCount = keep;
@@ -3613,15 +3823,43 @@ $('set-btn').addEventListener('click', (e) => {
   e.stopPropagation();
   const pop = $('set-pop');
   if (!pop.hidden) return closePop();
+  renderSetList();
+  pop.hidden = false; $('set-btn').setAttribute('aria-expanded', 'true');
+});
+// 組の一覧。行の ✕ は2回押しで削除(1回目で「もう一度で削除」に変わる)
+function renderSetList() {
   const ul = $('set-list'); ul.textContent = '';
   for (const x of store.sets) {
     const li = document.createElement('li'), b = document.createElement('button');
-    b.textContent = x.name; b.setAttribute('aria-current', String(x.id === store.cur));
+    b.className = 'sname'; b.textContent = x.name; b.setAttribute('aria-current', String(x.id === store.cur));
     b.addEventListener('click', () => switchSet(x.id));
-    li.appendChild(b); ul.appendChild(li);
+    li.appendChild(b);
+    if (store.sets.length > 1) {
+      const d = document.createElement('button');
+      d.className = 'sdel'; d.textContent = '✕'; d.title = '削除'; d.setAttribute('aria-label', `${x.name}を削除`);
+      d.addEventListener('click', () => {
+        if (!d.classList.contains('armed')) {
+          ul.querySelectorAll('.sdel.armed').forEach((o) => { o.classList.remove('armed'); o.textContent = '✕'; });
+          d.classList.add('armed'); d.textContent = 'もう一度で削除';
+          setTimeout(() => { if (d.isConnected) { d.classList.remove('armed'); d.textContent = '✕'; } }, 3000);
+          return;
+        }
+        deleteSet(x.id);
+        renderSetList();
+      });
+      li.appendChild(d);
+    }
+    ul.appendChild(li);
   }
-  pop.hidden = false; $('set-btn').setAttribute('aria-expanded', 'true');
-});
+}
+function deleteSet(id) {
+  if (store.sets.length < 2 || isSpinning) return;
+  const i = store.sets.findIndex((x) => x.id === id);
+  if (i < 0) return;
+  store.sets.splice(i, 1);
+  if (store.cur === id) { store.cur = store.sets[Math.max(0, i - 1)].id; saveStore(); applySet(); refreshWheel(true); }
+  else { saveStore(); renderSetPanel(); }
+}
 $('set-pop').addEventListener('click', (e) => e.stopPropagation());
 document.addEventListener('click', closePop);
 document.querySelectorAll('[data-new]').forEach((b) => b.addEventListener('click', () => {
@@ -3646,9 +3884,7 @@ $('set-del').addEventListener('click', () => {
   const b = $('set-del');
   if (store.sets.length < 2) return;
   if (!b.classList.contains('armed')) { b.classList.add('armed'); b.textContent = 'もう一度で削除'; delTimer = setTimeout(disarmDel, 3000); return; }
-  const i = store.sets.indexOf(curSet());
-  store.sets.splice(i, 1);
-  switchSet(store.sets[Math.max(0, i - 1)].id);
+  deleteSet(curSet().id);
 });
 
 /* ---------- 道具: 全画面・隠す ---------- */
