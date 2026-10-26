@@ -250,9 +250,9 @@
     --s: min(calc(13 * var(--vh)), calc(11 * var(--vw))); width: var(--s); height: calc(var(--s) * 1.18); padding: 7px; box-sizing: border-box;
     background: var(--fr); clip-path: polygon(50% 0, 88% 20%, 100% 100%, 0 100%, 12% 20%);
   }
-  body:not(.shogi) .koma, body:not(.shogi) .koma i { clip-path: circle(50% at 50% 50%); }
+  body:not(.shogi) .koma, body:not(.shogi) .koma i { clip-path: none; background: none; padding: 0; }
   body:not(.shogi) .koma { height: var(--s); }
-  body:not(.shogi) .koma i { padding-top: 0; background: radial-gradient(circle at 35% 30%, #fff6d0, #ffcf4a 45%, #c98a10); color: #7a3a00; }
+  body:not(.shogi) .koma img { width: 100%; height: 100%; object-fit: contain; display: block; }
   #steps.many .koma { --s: min(calc(11 * var(--vh)), calc(8.4 * var(--vw))); }
   .f-plain { --fr: linear-gradient(#fff6d8, #c99a3c 50%, #6a4410); --gl: rgba(255,220,140,.7); }
   #steps.many .komaw.big .koma { --s: min(calc(15 * var(--vh)), calc(11 * var(--vw))); }
@@ -510,7 +510,7 @@
   #pv .note { font-weight: 400; font-size: 10.5px; color: #aaa; line-height: 1.5; margin-top: 6px; }
 
   /* ---------- アプリの枠: 上=ヘッダー、左=舞台、右=候補(スマホは縦に積む) ---------- */
-  #evalbar { display: none !important; }
+  body:not(.shogi) #evalbar { display: none !important; }
   #app { position: fixed; inset: 0; z-index: 20; pointer-events: none; display: grid; grid-template-columns: minmax(0, 1fr) 340px; grid-template-rows: auto minmax(0, 1fr); grid-template-areas: "top top" "stage panel"; color: #f5e6c8; font: 700 13px 'Noto Sans JP', sans-serif; }
   #app > * { pointer-events: auto; }
   #stagebox { grid-area: stage; pointer-events: none !important; }
@@ -660,6 +660,7 @@
     </section>
     <section id="p-set" hidden>
       <label class="kv"><span>名前</span><input id="set-name" type="text" maxlength="30"></label>
+      <div class="kv"><span>テーマ</span><div class="seg" id="theme-seg"><button data-v="treasure">宝</button><button data-v="gacha">ガチャ</button><button data-v="shogi">将棋</button></div></div>
       <div class="kv"><span>モード</span><div class="seg" id="mode-seg"><button data-v="normal">ふつう</button><button data-v="gacha">ガチャ</button></div></div>
       <div class="prow"><span class="sp"></span><button id="set-del" class="pbtn warn">この組を削除</button></div>
       <div id="ver" class="ver"></div>
@@ -711,6 +712,7 @@ function normSet(x) {
   x.autoOff = !!x.autoOff; x.hidden = !!x.hidden; x.last = x.items.includes(x.last) ? x.last : '';
   // ガチャ: 等級は3つ(上から)。確率は等級ごと。いちばん下の残りは自動(はずれをオンにしたら、はずれが残り)
   x.mode = x.mode === 'gacha' ? 'gacha' : 'normal';
+  x.theme = THEME_KEYS.includes(x.theme) ? x.theme : 'treasure';
   const dt = defaultTiers();
   x.tiers = dt.map((d, i) => { const t = (Array.isArray(x.tiers) && x.tiers[i]) || {}; return { name: String(t.name || d.name).slice(0, 12), pct: clampPct(t.pct ?? d.pct) }; });
   x.hazure = { on: !!(x.hazure && x.hazure.on) };
@@ -719,6 +721,7 @@ function normSet(x) {
   for (const n of x.items) x.tierOf[n] = [0, 1, 2].includes(to[n]) ? to[n] : 2;
   return x;
 }
+const THEME_KEYS = ['treasure', 'gacha', 'shogi'];
 const defaultTiers = () => [{ name: '超大当たり', pct: 1 }, { name: '大当たり', pct: 5 }, { name: '当たり', pct: 30 }];
 const clampPct = (v) => { v = Math.round(Number(v) * 100) / 100; return Number.isFinite(v) ? Math.min(100, Math.max(0, v)) : 0; };
 // 残りの等級(はずれがオンならはずれ、オフなら当たり)の確率 = 100 − ほかの合計
@@ -1149,8 +1152,13 @@ function planDraft(winner, n) {
 }
 
 // 将棋の小ネタ(駒のステップアップ・駒群・巨大王将・振り駒)は将棋のテーマだけ
-const SHOGI = false;
-document.body.classList.toggle('shogi', SHOGI);
+// テーマ: 演出の確率はどれも同じで、駒にあたる物の見た目だけが替わる(模型は Blender で作った models/*.glb、段の絵は models/icons/)
+const THEMES = {
+  treasure: { toss: 'コイントス', hit: '王冠', swarm: '金貨', gim: '宝箱', steps: [1, 2, 3, 4, 5, 6, 7, 8].map((k) => `treasure-${k}`) },
+  gacha: { toss: 'カプセル', hit: '金', swarm: 'カプセル群', gim: 'ガチャマシン', steps: ['gacha-white', 'gacha-blue', 'gacha-green', 'gacha-red', 'gacha-silver', 'gacha-gold', 'gacha-rainbow', 'gacha-machine'] },
+  shogi: { toss: '振り駒', hit: 'と', swarm: '駒群予告', gim: '役物落下', steps: null },
+};
+let THEME = 'treasure', SHOGI = false;
 // ガチャの熱さ: 当たった等級で決まりやすい(超大当たりほど虹・ゼブラ・金、下の等級とはずれはほぼ通常)
 const GACHA_HEAT = [{ rainbow: 40, zebra: 25, gold: 30, normal: 5 }, { zebra: 10, gold: 45, normal: 45 }, { gold: 8, normal: 92 }, { gold: 5, normal: 95 }];
 function planFor(winner, n) {
@@ -1830,39 +1838,64 @@ const pieceGeo = (() => {
   g.translate(0, 0, -0.07); return g;
 })();
 const woodMat = new THREE.MeshStandardMaterial({ color: 0xe9c27c, roughness: 0.55, metalness: 0.05 });
-// 汎用のテーマ: 駒の代わりにガチャのカプセル(Blender で作った models/capsule.glb。上の殻 top・下の殻 bottom・合わせ目 band)。
-// 読めなかったときだけ金のコイン
-const coinGeo = new THREE.CylinderGeometry(0.42, 0.42, 0.2, 48).rotateX(Math.PI / 2);
-const coinMat = new THREE.MeshStandardMaterial({ color: 0xffd36a, metalness: 0.9, roughness: 0.28 });
-let capsuleSrc = null;
+// 宝・ガチャのテーマの模型。読み込みはテーマを使うときに1回だけ
+const gltfLoader = new GLTFLoader();
+const ASSETS = {};
+const loadAsset = (name) => (ASSETS[name] ??= gltfLoader.loadAsync(`models/${name}.glb`).then((g) => g.scene).catch(() => null));
 const CAPSULE_COLORS = ['#ff4d6d', '#3d9bff', '#ffcf3a', '#3fd27a', '#b07bff', '#ff8a2a'];
 const GOLD = { color: '#ffc93a', metalness: 0.85, roughness: 0.22 };
-function makeCapsule(top, bottom = null) {
-  const c = capsuleSrc.clone(true);
+// カプセルの殻を塗り分けて複製(top = 上の殻、ほか = 下の殻と帯)
+function tintCapsule(src, top, bottom = null) {
+  const c = src.clone(true);
   c.traverse((o) => {
     if (!o.isMesh) return;
-    o.material = o.material.clone();
     const spec = o.name.startsWith('top') ? top : bottom;
     if (!spec) return;
+    o.material = o.material.clone();
     if (typeof spec === 'string') o.material.color.set(spec);
     else { o.material.color.set(spec.color); o.material.metalness = spec.metalness; o.material.roughness = spec.roughness; }
   });
   return c;
 }
-function applyGlyphs() {
-  const set = (g, mk, rotX = 0) => {
-    const [body, ...faces] = g.children.filter((o) => !o.userData.capsule);
-    const old = g.children.find((o) => o.userData.capsule); if (old) g.remove(old);
-    const useCap = !SHOGI && capsuleSrc;
-    body.visible = !useCap; faces.forEach((f) => { f.visible = !useCap; f.position.y = SHOGI ? -0.05 : 0; });
-    if (!useCap) { body.geometry = SHOGI ? pieceGeo : coinGeo; if (!SHOGI && g !== gimmick) body.material = coinMat; return; }
-    const c = mk(); c.userData.capsule = true; c.rotation.x = rotX;
-    g.add(c);
+// 模型を中心に寄せて、高さ h にそろえる(落ちてくる大物用)
+function fitModel(src, h) {
+  const c = src.clone(true), g = new THREE.Group();
+  const box = new THREE.Box3().setFromObject(c), size = box.getSize(new THREE.Vector3()), ctr = box.getCenter(new THREE.Vector3());
+  c.position.sub(ctr); g.add(c); g.scale.setScalar(h / size.y);
+  return g;
+}
+function redrawKanji() {
+  const redraw = (tx, ch, red) => { if (!tx) return; const c = tx.image; const x = c.getContext('2d'); x.clearRect(0, 0, c.width, c.height); x.font = `900 200px 'Noto Sans JP', serif`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = red ? '#b00000' : '#1a0d00'; x.fillText(ch, c.width / 2, c.height / 2 + 8); tx.needsUpdate = true; };
+  PIECES.forEach((ch, i) => { redraw(kanjiTex[i], ch, false); redraw(backTex[i], PROMOTED[ch], true); });
+}
+// 組のテーマにする。駒の入れ物(駒群・振り駒・役物)の中身を、駒か模型に入れ替える
+async function applyTheme() {
+  THEME = curSet().theme; SHOGI = THEME === 'shogi';
+  document.body.classList.toggle('shogi', SHOGI);
+  const th = THEMES[THEME];
+  const [piece, big] = THEME === 'treasure' ? await Promise.all([loadAsset('coin'), loadAsset('chest')]) : THEME === 'gacha' ? await Promise.all([loadAsset('capsule'), loadAsset('machine')]) : [null, null];
+  if (THEME !== curSet().theme) return;   // 読み込み中に別のテーマへ替わった
+  const put = (g, model) => {
+    const old = g.children.find((o) => o.userData.model); if (old) g.remove(old);
+    const [body, ...faces] = g.children;
+    const use = !SHOGI && model;
+    body.visible = !use; faces.forEach((f) => { f.visible = !use; });
+    if (use) { model.userData.model = true; g.add(model); }
   };
-  swarm.forEach((g, i) => set(g, () => makeCapsule(CAPSULE_COLORS[i % CAPSULE_COLORS.length]), rand(-0.6, 0.6)));
-  // コイントス: 表(静止)は白い殻、裏返ると金の殻(当たり)が見える
-  furi.forEach((g) => set(g, () => makeCapsule(GOLD), -Math.PI / 2));
-  set(gimmick, () => makeCapsule(GOLD, GOLD), -0.45);
+  if (THEME === 'treasure') {
+    swarm.forEach((g) => put(g, piece && piece.clone(true)));
+    furi.forEach((g) => put(g, piece && piece.clone(true)));          // 静止は★の面、裏返ると王冠の面(当たり)
+  } else if (THEME === 'gacha') {
+    swarm.forEach((g, i) => { const c = piece && tintCapsule(piece, CAPSULE_COLORS[i % CAPSULE_COLORS.length]); if (c) c.rotation.x = rand(-0.6, 0.6); put(g, c); });
+    furi.forEach((g) => { const c = piece && tintCapsule(piece, GOLD); if (c) c.rotation.x = -Math.PI / 2; put(g, c); });   // 静止は白い殻、裏返ると金の殻
+  } else { swarm.forEach((g) => put(g, null)); furi.forEach((g) => put(g, null)); }
+  const giant = big && fitModel(big, THEME === 'gacha' ? 1.15 : 0.85);
+  put(gimmick, giant);
+  gimmick.userData.lid = giant?.getObjectByName('lid') || null;
+  gimmick.userData.handle = giant?.getObjectByName('handle') || null;
+  if (th.steps) th.steps.forEach((s) => { new Image().src = `models/icons/${s}.png`; });
+  const pv = (id, text) => { const e = document.getElementById(id); if (e) e.textContent = text; };
+  pv('pv-l-furi', SHOGI ? '振り駒の「と」' : `${th.toss}の${th.hit}`); pv('pv-l-swarm', th.swarm); pv('pv-l-gim', th.gim);
 }
 const kanjiTex = PIECES.map((ch) => drawKanji(ch, false));
 const backTex = PIECES.map((ch) => (PROMOTED[ch] ? drawKanji(PROMOTED[ch], true) : null));
@@ -1898,6 +1931,7 @@ const gimmick = new THREE.Group();
   scene.add(gimmick);
 }
 function dropGimmick() { gimmick.userData.t = 0; gimmick.visible = true; }
+gimmick.userData.lid = gimmick.userData.handle = null;
 function updateGimmick(dt) {
   const u = gimmick.userData;
   if (u.t < 0) return;
@@ -1913,6 +1947,9 @@ function updateGimmick(dt) {
   gimmick.position.set(0, y, 6);
   gimmick.rotation.set(0, (t > 0.32 && t < 1.35) ? Math.sin(t * 9) * 0.06 : 0, 0);
   gimMat.emissiveIntensity = t > 0.32 && t < 1.35 ? 0.4 + 0.4 * Math.abs(Math.sin(t * 14)) : 0.1;
+  if (u.lid) u.lid.rotation.x = t > 0.55 && t < 1.35 ? -1.75 * Math.min(1, (t - 0.55) / 0.22) ** 0.6 : 0;
+  if (u.handle) u.handle.rotation.z = t > 0.5 ? -Math.min(1, (t - 0.5) / 0.7) * TAU : 0;
+  if (u.lid && t > 0.55 && t - dt <= 0.55) { flash('#ffe08a', 0.5, 0.7); sound.kyuin(); }
 }
 
 function launchSwarm() {
@@ -2230,7 +2267,7 @@ async function gemTease() {
 
 // 駒の格で上がる。上がるほど次のリーチが熱い(誰が勝つかは示さない)
 const KOMA = ['歩', '香', '桂', '銀', '金', '角', '飛', '玉'];
-const STEP_GLYPH = (s) => (SHOGI ? KOMA[s] : '★');
+const STEP_GLYPH = (s) => (SHOGI ? KOMA[s] : `<img src="models/icons/${THEMES[THEME].steps[s]}.png" alt="">`);
 const STEP_MS = 420;
 const stepDuration = (n) => (n ? n * STEP_MS + 700 : 0);
 async function stepUp(n) {
@@ -2413,13 +2450,13 @@ async function furigomaFx(tokin) {
   const flips = [0, 1, 2, 3, 4].sort(() => Math.random() - 0.5).slice(0, tokin);
   furiAnim = { t: 0, items: furi.map((g, i) => ({ g, delay: i * 0.09, x: (i - 2) * 1.9, back: flips.includes(i), spin: 3 + Math.floor(rand(0, 3)), land: false })) };
   furi.forEach((g) => { g.visible = true; });
-  cutin(SHOGI ? '振り駒' : 'コイントス', 't-white', { dur: 900, small: true });
+  cutin(THEMES[THEME].toss, 't-white', { dur: 900, small: true });
   sound.swarm();
   await sleep(2100);
   const t = tokin >= 5 ? 't-rainbow' : tokin >= 4 ? 't-gold' : tokin >= 2 ? 't-red' : 't-blue';
   // と が3枚以上 = 次のリーチは金以上(帯の信頼度が上がる)ので、その意味を添える
   const sub = tokin >= 5 ? 'リーチ信頼度MAX!!' : tokin >= 3 ? 'リーチ信頼度UP!' : '';
-  cutin(SHOGI ? `と ×${tokin}` : `★ ×${tokin}`, t, { dur: sub ? 1500 : 1100, small: true, gloss: tokin >= 2 ? (tokin >= 5 ? 'rainbow' : tokin >= 4 ? 'gold' : 'red') : null, sub });
+  cutin(`${THEMES[THEME].hit} ×${tokin}`, t, { dur: sub ? 1500 : 1100, small: true, gloss: tokin >= 2 ? (tokin >= 5 ? 'rainbow' : tokin >= 4 ? 'gold' : 'red') : null, sub });
   if (tokin >= 3) { flash('#fff', 0.4, 0.6); fx.shake = 0.8; sound.holdChange(tokin); }
   await sleep(sub ? 1700 : 1300);
   furiAnim = null;
@@ -3184,11 +3221,11 @@ function buildPreviewPanel() {
   <label data-r>帯が指す人 <select id="pv-lead"><option value="auto">おまかせ(本番と同じ)</option><option value="win">勝者</option><option value="other">別の人</option><option value="flip">別の人→勝者(寝返り)</option></select></label>
   <label data-r>昇格 <select id="pv-up"><option value="0">なし</option><option value="1">通常から昇格</option></select></label>
   <hr>
-  <label data-r>${SHOGI ? '振り駒の「と」' : 'コイントスの金'} <select id="pv-furi"><option value="-1">なし</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+  <label data-r><span id="pv-l-furi"></span> <select id="pv-furi"><option value="-1">なし</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
   <label data-r>ステップアップ <input type="number" id="pv-steps" min="0" max="8" value="4"></label>
   <label data-r>擬似連 <input type="number" id="pv-pseudo" min="0" max="3" value="1"></label>
-  <label data-r>${SHOGI ? '駒群予告' : 'カプセル群'} <input type="checkbox" id="pv-swarm"></label>
-  <label data-r>${SHOGI ? '役物落下' : '大カプセル落下'} <input type="checkbox" id="pv-gim"></label>
+  <label data-r><span id="pv-l-swarm"></span> <input type="checkbox" id="pv-swarm"></label>
+  <label data-r><span id="pv-l-gim"></span> <input type="checkbox" id="pv-gim"></label>
   <label data-r>激熱 <input type="checkbox" id="pv-geki" checked></label>
   <label data-r>PUSH <input type="checkbox" id="pv-push"></label>
   <label data-r>連打 <input type="checkbox" id="pv-mash"></label>
@@ -3454,12 +3491,13 @@ function renderSetPanel() {
   const set = curSet();
   $('set-name').value = set.name;
   $('mode-seg').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === set.mode)));
+  $('theme-seg').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === set.theme)));
   $('set-del').disabled = store.sets.length < 2;
   disarmDel();
 }
 // 組を切り替えたとき: 一覧・盤・隠した状態をその組のものに
 function applySet() {
-  renderSetBtn(); renderItems(); renderSetPanel();
+  renderSetBtn(); renderItems(); renderSetPanel(); applyTheme();
   document.body.classList.toggle('ui-hidden', curSet().hidden);
 }
 function switchSet(id) {
@@ -3492,6 +3530,7 @@ $('set-new').addEventListener('click', () => {
 });
 $('set-name').addEventListener('change', (e) => { const v = e.target.value.trim().slice(0, 30); if (!v) { e.target.value = curSet().name; return; } curSet().name = v; saveStore(); renderSetBtn(); refreshWheel(); });
 $('set-name').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.isComposing) e.target.blur(); });
+$('theme-seg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b || curSet().theme === b.dataset.v) return; curSet().theme = b.dataset.v; saveStore(); renderSetPanel(); applyTheme(); });
 $('mode-seg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b || curSet().mode === b.dataset.v) return; curSet().mode = b.dataset.v; renderSetPanel(); commit(); });
 $('set-dup').addEventListener('click', () => {
   const x = normSet(JSON.parse(JSON.stringify(curSet())));
@@ -3574,10 +3613,8 @@ document.addEventListener('touchend', (e) => {
       sleep(2500),
     ]);
   } catch (_) { /* フォント無しでも続行 */ }
-  const redraw = (t, ch, red) => { if (!t) return; const c = t.image; const x = c.getContext('2d'); x.clearRect(0, 0, c.width, c.height); x.font = `900 200px 'Noto Sans JP', serif`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = red ? '#b00000' : '#1a0d00'; x.fillText(ch, c.width / 2, c.height / 2 + 8); t.needsUpdate = true; };
-  PIECES.forEach((ch, i) => { redraw(kanjiTex[i], SHOGI ? ch : ch === '歩' ? '○' : '★', false); redraw(backTex[i], SHOGI ? PROMOTED[ch] : '★', true); });
-  capsuleSrc = await new GLTFLoader().loadAsync('models/capsule.glb').then((g) => g.scene).catch(() => null);
-  applyGlyphs();
+  redrawKanji();
+  await applyTheme();
   await loadDraftImage();
   syncDraft();
   applySet();
