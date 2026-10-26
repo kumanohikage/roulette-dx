@@ -1186,11 +1186,13 @@ const HEAT_ORDER = ['normal', 'gold', 'zebra', 'rainbow'];
 const REACH_REL = { normal: 0.7, gold: 0.8, zebra: 0.9, rainbow: 1 };
 const SIGN_REL = 0.6;
 const PUSH_RATE = { normal: 0.2, gold: 0.5, zebra: 0.7, rainbow: 1 };   // PUSH は控えめ(押すのは主催者なので)
-// 全回転: 回すほど出やすくなり、出たら元に戻る(k 回目 = 5% × k、最大 60%)。だいたい5回に1回
+// レア枠の数え方(回した回数。全回転か流星が出たら 0 に戻る)
 const ZENKAI_KEY = 'rouletteDXZenkai';   // ドラフト抽選版と同じサイト(github.io)なので名前を分ける
 let zenkaiCount = 0;
 try { zenkaiCount = Math.max(0, parseInt(localStorage.getItem(ZENKAI_KEY) || '0', 10) || 0); } catch (_) { /* 保存できない環境でも動く */ }
-function zenkaiRate() { return Math.min(0.6, 0.05 * (zenkaiCount + 1)); }
+// レア枠(全回転・流星)は同じ数え方: 回すたびに少しずつ出やすくなり、どちらかが出たら元に戻る
+function zenkaiRate() { return Math.min(0.2, 0.02 + 0.01 * zenkaiCount); }    // 全回転: 2% → 1回ごとに +1%(20% まで)
+function meteorRate() { return Math.min(0.1, 0.01 + 0.005 * zenkaiCount); }   // 流星: 1% → 1回ごとに +0.5%(10% まで)
 function bumpZenkai(hit) {
   zenkaiCount = hit ? 0 : zenkaiCount + 1;
   try { localStorage.setItem(ZENKAI_KEY, String(zenkaiCount)); } catch (_) { /* 同上 */ }
@@ -1252,7 +1254,7 @@ function planDraft(winner, n) {
 // 将棋の小ネタ(駒のステップアップ・駒群・巨大王将・振り駒)は将棋のテーマだけ
 // テーマ: 演出の確率はどれも同じで、駒にあたる物の見た目だけが替わる(模型は Blender で作った models/*.glb、段の絵は models/icons/)
 const THEMES = {
-  treasure: { toss: 'コイントス', hit: '王冠', swarm: '魚群', gim: '宝箱', sea: true, steps: [1, 2, 3, 4, 5, 6, 7, 8].map((k) => `treasure-${k}`) },
+  treasure: { toss: 'コイントス', hit: '王冠', swarm: '金貨', gim: '宝箱', sea: false, steps: [1, 2, 3, 4, 5, 6, 7, 8].map((k) => `treasure-${k}`) },
   shogi: { toss: '振り駒', hit: 'と', swarm: '駒群予告', gim: '役物落下', steps: null },
 };
 let THEME = 'treasure', SHOGI = false;
@@ -1260,7 +1262,7 @@ let THEME = 'treasure', SHOGI = false;
 const GACHA_HEAT = [{ rainbow: 40, zebra: 25, gold: 30, normal: 5 }, { zebra: 10, gold: 45, normal: 45 }, { gold: 8, normal: 92 }, { gold: 5, normal: 95 }];
 function planFor(winner, n) {
   if (PREVIEW) return previewPlan(winner, n);
-  if (chance(METEOR_RATE)) return { ...zenkaiPlan(), zenkaiten: false, meteor: true };
+  if (chance(meteorRate())) { bumpZenkai(true); return { ...zenkaiPlan(), zenkaiten: false, meteor: true }; }
   // ふつうは、ドラフト抽選版で調整した演出の確率をそのまま(一発決着・全回転・再抽選・リーチの熱さ・PUSH など)
   const p = planDraft(winner, n);
   const tier = draft.tier ? draft.tier[winner] : -1;
@@ -2048,7 +2050,7 @@ async function applyTheme() {
   THEME = themeOf(curSet()); SHOGI = THEME === 'shogi';
   document.body.classList.toggle('shogi', SHOGI);
   const th = THEMES[THEME];
-  const [piece, big, fish] = THEME === 'treasure' ? await Promise.all([loadAsset('coin'), loadAsset('chest'), loadAsset('fish')]) : [null, null, null];
+  const [piece, big, fish] = THEME === 'treasure' ? await Promise.all([loadAsset('coin'), loadAsset('chest'), null]) : [null, null, null];
   if (THEME !== themeOf(curSet())) return;   // 読み込み中に別のテーマへ替わった
   const put = (g, model) => {
     const old = g.children.find((o) => o.userData.model); if (old) g.remove(old);
@@ -2058,7 +2060,7 @@ async function applyTheme() {
     if (use) { model.userData.model = true; g.add(model); }
   };
   if (THEME === 'treasure') {
-    swarm.forEach((g) => put(g, fish && cloneFish(fish)));
+    swarm.forEach((g) => put(g, piece && piece.clone(true)));
     furi.forEach((g) => put(g, piece && piece.clone(true)));          // 静止は★の面、裏返ると王冠の面(当たり)
   } else { swarm.forEach((g) => put(g, null)); furi.forEach((g) => put(g, null)); }
   const giant = big && fitModel(big, 0.85);
@@ -2116,7 +2118,7 @@ function updateGimmick(dt) {
     else if (t >= 1.85) { gimmick.visible = false; u.t = -1; return; }
     if (t >= 0.55 && t - dt < 0.55) {
       sound.gata(); fx.shake = 1.0; flash('#bfe6ff', 0.3, 0.5);
-      for (let i = 0; i < 60; i++) { const a = rand(0, TAU); sparks.emit(rand(-3, 3), low - 1.6, 6 + rand(-1, 1), Math.cos(a) * rand(0.5, 2), rand(1.5, 5), rand(-0.5, 0.5), BUBBLE, rand(0.18, 0.45), rand(0.8, 1.6), 0, 0.97); }
+      for (let i = 0; i < 60; i++) { const a = rand(0, TAU); sparks.emit(rand(-3, 3), low - 1.6, 6 + rand(-1, 1), Math.cos(a) * rand(0.5, 2), rand(1.5, 5), rand(-0.5, 0.5), AMB.light, rand(0.18, 0.45), rand(0.8, 1.6), 0, 0.97); }
     }
     gimmick.position.set(0, y, 6);
     gimmick.rotation.set(0, 0, t < 0.55 ? Math.sin(t * 9) * 0.12 * (1 - t / 0.55) : 0);
@@ -2712,7 +2714,6 @@ function lotsEnd(winner) {
  *  あとから来た候補の光が衛星のように螺旋を描いて回りこみ、ひとつずつ合体 → まばゆく光って決定
  *  結果は回す前に決まっている。この演出は見せ方だけ(麻雀ゲームの役満の演出のオマージュ)
  * ------------------------------------------------------------------- */
-const METEOR_RATE = 0.02;
 let meteor = null;
 const ease3 = (x) => 1 - (1 - Math.min(1, Math.max(0, x))) ** 3;
 const clamp01 = (x) => Math.min(1, Math.max(0, x));
@@ -3828,7 +3829,7 @@ function previewPlan(winner, n) {
   };
 }
 
-const VERSION = '1.0.2';
+const VERSION = '1.1.0';
 const IS_DEV = /\/dev\/?$/.test(location.pathname.replace(/index\.html$/, ''));
 $('ver').textContent = `ルーレットDX v${VERSION}${IS_DEV ? '（確認用）' : ''}`;
 if (IS_DEV) {
