@@ -679,6 +679,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { SavePass } from 'three/addons/postprocessing/SavePass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 /* =====================================================================
  *  ドラフト抽選: 競合したリーダーのうち誰が交渉権を得るかを決める。
@@ -1829,16 +1830,39 @@ const pieceGeo = (() => {
   g.translate(0, 0, -0.07); return g;
 })();
 const woodMat = new THREE.MeshStandardMaterial({ color: 0xe9c27c, roughness: 0.55, metalness: 0.05 });
-// 汎用のテーマ: 駒の代わりに金のコイン(表に★、裏に赤い★)
+// 汎用のテーマ: 駒の代わりにガチャのカプセル(Blender で作った models/capsule.glb。上の殻 top・下の殻 bottom・合わせ目 band)。
+// 読めなかったときだけ金のコイン
 const coinGeo = new THREE.CylinderGeometry(0.42, 0.42, 0.2, 48).rotateX(Math.PI / 2);
 const coinMat = new THREE.MeshStandardMaterial({ color: 0xffd36a, metalness: 0.9, roughness: 0.28 });
+let capsuleSrc = null;
+const CAPSULE_COLORS = ['#ff4d6d', '#3d9bff', '#ffcf3a', '#3fd27a', '#b07bff', '#ff8a2a'];
+const GOLD = { color: '#ffc93a', metalness: 0.85, roughness: 0.22 };
+function makeCapsule(top, bottom = null) {
+  const c = capsuleSrc.clone(true);
+  c.traverse((o) => {
+    if (!o.isMesh) return;
+    o.material = o.material.clone();
+    const spec = o.name.startsWith('top') ? top : bottom;
+    if (!spec) return;
+    if (typeof spec === 'string') o.material.color.set(spec);
+    else { o.material.color.set(spec.color); o.material.metalness = spec.metalness; o.material.roughness = spec.roughness; }
+  });
+  return c;
+}
 function applyGlyphs() {
-  const set = (g, big) => {
-    const [body, ...faces] = g.children;
-    body.geometry = SHOGI ? pieceGeo : coinGeo; body.material = big ? gimMat : SHOGI ? woodMat : coinMat;
-    for (const f of faces) f.position.y = SHOGI ? -0.05 : 0;
+  const set = (g, mk, rotX = 0) => {
+    const [body, ...faces] = g.children.filter((o) => !o.userData.capsule);
+    const old = g.children.find((o) => o.userData.capsule); if (old) g.remove(old);
+    const useCap = !SHOGI && capsuleSrc;
+    body.visible = !useCap; faces.forEach((f) => { f.visible = !useCap; f.position.y = SHOGI ? -0.05 : 0; });
+    if (!useCap) { body.geometry = SHOGI ? pieceGeo : coinGeo; if (!SHOGI && g !== gimmick) body.material = coinMat; return; }
+    const c = mk(); c.userData.capsule = true; c.rotation.x = rotX;
+    g.add(c);
   };
-  swarm.forEach((g) => set(g)); furi.forEach((g) => set(g)); set(gimmick, true);
+  swarm.forEach((g, i) => set(g, () => makeCapsule(CAPSULE_COLORS[i % CAPSULE_COLORS.length]), rand(-0.6, 0.6)));
+  // コイントス: 表(静止)は白い殻、裏返ると金の殻(当たり)が見える
+  furi.forEach((g) => set(g, () => makeCapsule(GOLD), -Math.PI / 2));
+  set(gimmick, () => makeCapsule(GOLD, GOLD), -0.45);
 }
 const kanjiTex = PIECES.map((ch) => drawKanji(ch, false));
 const backTex = PIECES.map((ch) => (PROMOTED[ch] ? drawKanji(PROMOTED[ch], true) : null));
@@ -3552,6 +3576,7 @@ document.addEventListener('touchend', (e) => {
   } catch (_) { /* フォント無しでも続行 */ }
   const redraw = (t, ch, red) => { if (!t) return; const c = t.image; const x = c.getContext('2d'); x.clearRect(0, 0, c.width, c.height); x.font = `900 200px 'Noto Sans JP', serif`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = red ? '#b00000' : '#1a0d00'; x.fillText(ch, c.width / 2, c.height / 2 + 8); t.needsUpdate = true; };
   PIECES.forEach((ch, i) => { redraw(kanjiTex[i], SHOGI ? ch : ch === '歩' ? '○' : '★', false); redraw(backTex[i], SHOGI ? PROMOTED[ch] : '★', true); });
+  capsuleSrc = await new GLTFLoader().loadAsync('models/capsule.glb').then((g) => g.scene).catch(() => null);
   applyGlyphs();
   await loadDraftImage();
   syncDraft();
