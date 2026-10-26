@@ -189,7 +189,7 @@
 
   /* Result */
   #meteor { position: absolute; left: 0; top: 0; width: 100%; height: 100%; z-index: 45; pointer-events: none; }
-  #result.meteor .rbg { background: radial-gradient(circle, rgba(0,0,0,0) 30%, rgba(60,20,0,.25)) !important; }
+  #result.meteor .rbg { background: radial-gradient(circle, rgba(0,0,0,0) 35%, rgba(4,0,18,.35)) !important; }
   #result { position: fixed; inset: 0; z-index: 50; display: none; align-items: center; justify-content: center; cursor: pointer; }
   #result.show { display: flex; }
   #result .rbg { position: absolute; inset: 0; background: radial-gradient(circle, rgba(0,0,0,.25), rgba(0,0,0,.7)); animation: fadeIn .4s both; }
@@ -1044,6 +1044,27 @@ class SoundEngine {
   }
   // 低音だけだとスマホのスピーカーでは鳴らないので、聞こえる高さの成分も重ねる
   // 吸い込まれる「おーー…」: 低いうなりがゆっくり上がっていく
+  // 駆け上がる: のこぎり波のうなりが上がりつづけ、だんだん速くなる上りの音階と、風を切る音
+  rush(dur) {
+    if (!this.ready()) return;
+    this.tone(160, { type: 'sawtooth', dur, g: 0.045, f2: 1280, attack: 0.3 });
+    this.tone(240, { type: 'square', dur, g: 0.02, f2: 1920, attack: 0.3 });
+    this.noise({ dur, g: 0.22, f: 500, f2: 7000, type: 'bandpass', q: 1.5 });
+    const scale = [0, 2, 4, 7, 9, 12, 14, 16, 19, 21, 24, 26, 28, 31, 33, 36];
+    let at = 0, step = 0.2, i = 0;
+    while (at < dur - 0.05) {
+      const f = 523.25 * Math.pow(2, scale[i % scale.length] / 12) * (i >= scale.length ? 2 : 1);
+      this.tone(f, { type: 'triangle', at, dur: 0.14, g: 0.07 });
+      this.tone(f * 2, { type: 'sine', at, dur: 0.1, g: 0.03 });
+      at += step; step = Math.max(0.045, step * 0.88); i++;
+    }
+  }
+  // 銀河: きらきらした余韻
+  galaxy() {
+    if (!this.ready()) return;
+    [1046.5, 1318.5, 1568, 2093, 2637, 3136].forEach((f, i) => this.tone(f, { type: 'sine', at: 0.05 + i * 0.07, dur: 2.2, g: 0.04 }));
+    this.tone(130.8, { type: 'triangle', dur: 2.6, g: 0.12 });
+  }
   swell(dur) {
     if (!this.ready()) return;
     const c = this.ctx, t = c.currentTime;
@@ -1444,6 +1465,8 @@ const bg = new THREE.Mesh(
     fragmentShader: `
       uniform float uTime, uDark, uReach, uWin, uDim, uGlow, uAspect, uSea, uSky, uBright; uniform vec3 uTier; varying vec2 vUv;
       float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453); }
+      float vnoise(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y); }
+      float fbm(vec2 p){ float v = 0.0, a = 0.5; for (int i = 0; i < 5; i++) { v += a * vnoise(p); p = p * 2.03 + 1.7; a *= 0.5; } return v; }
       void main(){
         vec2 p = (vUv - 0.5) * vec2(uAspect, 1.0) * 2.0;
         float r = length(p), a = atan(p.y, p.x);
@@ -1483,13 +1506,18 @@ const bg = new THREE.Mesh(
           col = mix(col, night, uSky);
         }
         // 光の世界(流星の決定): 真ん中ほどまぶしい金と白、回る光の筋
+        // 銀河(流星の決定): 星雲と星
         if (uBright > 0.001) {
-          float rb2 = length(p - vec2(0.0, 0.1)), ab = atan(p.y - 0.1, p.x);
-          float gr = pow(0.5 + 0.5 * sin(ab * 18.0 + uTime * 1.2), 3.0) + 0.6 * pow(0.5 + 0.5 * sin(ab * 9.0 - uTime * 0.7), 5.0);
-          vec3 glory = mix(vec3(1.3, 1.2, 1.0), vec3(1.0, 0.62, 0.14), smoothstep(0.0, 1.3, rb2));
-          glory += gr * vec3(1.0, 0.85, 0.5) * 0.45 * (1.0 - smoothstep(0.2, 2.2, rb2));
-          glory = mix(glory, vec3(0.45, 0.16, 0.02), smoothstep(1.4, 2.6, rb2));
-          col = mix(col, glory, uBright);
+          vec2 q = p * 1.1 + vec2(uTime * 0.012, -uTime * 0.008);
+          float n1 = fbm(q * 1.6 + fbm(q * 2.2)), n2 = fbm(q * 2.6 - 3.1), n3 = fbm(q * 4.0 + 7.3);
+          vec3 neb = vec3(0.004, 0.004, 0.018);
+          neb += vec3(0.42, 0.07, 0.5) * pow(n1, 3.2) * 1.5;
+          neb += vec3(0.05, 0.22, 0.55) * pow(n2, 3.4) * 1.4;
+          neb += vec3(0.6, 0.2, 0.35) * pow(n3, 6.0) * 0.9;
+          neb += vec3(1.0, 0.8, 0.55) * 0.18 * exp(-length(p) * 2.4);
+          vec2 sv2 = vUv * vec2(uAspect, 1.0) * 160.0; vec2 g2 = floor(sv2);
+          neb += step(0.982, hash(g2)) * smoothstep(0.25, 0.0, length(fract(sv2) - 0.5)) * (0.6 + 0.4 * sin(uTime * 2.5 + hash(g2 + 1.3) * 30.0)) * vec3(0.9, 0.9, 1.0);
+          col = mix(col, neb, uBright);
         }
         // 大当たり: 虹の後光
         vec3 rb = 0.5 + 0.5 * cos(6.2831 * (a / 6.2831 * 2.0 + uTime * 0.35 + vec3(0.0, 0.33, 0.67)));
@@ -2648,10 +2676,6 @@ function meteorFx(winner, landIdx) {
     const wTrail = new Trail(0xffb84a, 420, 1.8, 0.45);
     const center = new THREE.Vector3(0, TOP, 0), wp = new THREE.Vector3(), tmp = new THREE.Vector3();
     const core = glowSprite(0xfff3c8, 0.1);
-    buildZenOverlay('light', winner);
-    const zen = [...zenOverlay.g.children].sort(() => Math.random() - 0.5);
-    let zenShown = 0;
-    const showZen = (upto) => { while (zenShown < Math.min(zen.length, upto)) { const s = zen[zenShown++]; s.visible = true; sliceBurst(s.userData.i); } };
     // あとから来る光: 当たり以外の候補(多いときは11まで)。それぞれ傾いた軌道で回りこむ
     const others = draft.leaders.map((_, i) => i).filter((i) => i !== winner).slice(0, 11);
     const fol = others.map((li, k) => {
@@ -2662,14 +2686,13 @@ function meteorFx(winner, landIdx) {
     const cam = meteor.cam, base = { pos: camPos.clone(), look: camLook.clone() };
     fx.ambientRate = 0; fx.bulb = 'spin';
     sound.init(); sound.swell(1.2);
-    let T = 0, phiTo = null, phi0 = 0, launched = false, cut = false, whoosh = false, climax = false, ended = false, absorbed = 0;
+    let T = 0, camA = 0, launched = false, cut = false, whoosh = false, climax = false, ended = false, absorbed = 0;
     meteor.update = (dt) => {
       T += dt;
       const sky01 = clamp01((T - 1.3) / 0.8);
       bgUniforms.uSky.value = sky01; sky.visible = sky01 > 0.01;
-      // 盤の回転: ためでぐんぐん速く、飛んでいる間は高速、止まる前に当たりのマスを針へ
-      if (T < 3.6) phi += dt * (3 + 22 * clamp01(T / 1.1));
-      else { if (phiTo === null) { phi0 = phi; phiTo = phi0 + TAU * 3 + mod((SL[landIdx].a0 + SL[landIdx].a1) / 2 - Math.PI / 2 - phi0, TAU); } phi = lerpN(phi0, phiTo, ease3((T - 3.6) / 1.3)); }
+      // 盤の回転: ためでぐんぐん速く、そのあとはずっと回り続ける(中身は変えない。決まったものは最後に分かる)
+      phi += dt * (3 + 22 * clamp01(T / 1.1)) * (T < 3.6 ? 1 : 0.75);
       let y = 0, sx = 1, sy = 1;
       if (T < 1.1) {
         // 1. ため: 少し沈んでつぶれ、光の輪が脈打ち、まわりの光が吸い込まれる
@@ -2706,21 +2729,21 @@ function meteorFx(winner, landIdx) {
         y = lerpN(210, TOP, k); sx = sy = lerpN(0.95, 1, k);
         cam.rate = 4; cam.pos.set(lerpN(2.5, 0, k), lerpN(TOP - 24, TOP - 1, k), lerpN(15, 40, k)); cam.look.set(0, TOP, 0);
       } else {
-        // 5. 衛星のように回りこむ光と合体。カメラはゆっくり回る
-        y = TOP + Math.sin(T * 1.6) * 0.25;
-        const a = Math.sin((T - 4.9) * 0.35) * 0.45;
-        cam.rate = 3; cam.pos.set(Math.sin(a) * 40, TOP - 1 + Math.sin(T * 0.5) * 1.5, Math.cos(a) * 40); cam.look.set(0, TOP, 0);
+        // 5. 衛星のように回りこむ光と合体。止まって見えないよう、カメラは回りながら少しずつ寄る
+        y = TOP + Math.sin(T * 1.6) * 0.4;
+        camA += dt * (ended ? 0.1 : 0.75);
+        const rr = ended ? 34 : lerpN(40, 30, clamp01((T - 4.9) / 3));
+        cam.rate = 3; cam.pos.set(Math.sin(camA) * rr, TOP - 1 + Math.sin(T * 0.7) * 3, Math.cos(camA) * rr); cam.look.set(0, TOP, 0);
+        wheelRoot.rotation.z = Math.sin(T * 1.3) * 0.08;
       }
       wheelRoot.position.set(0, y, 0);
       wheelRoot.scale.set(sx, sy, 1);
       if (ended) wheelRoot.scale.setScalar(0.001);   // 決定のあとは光の中(結果を閉じたら戻る)
       // 飛んでいる間は面を上へ向け、止まるときに正面へ戻す
       const tiltK = T < 1.1 ? 0 : T < 2.0 ? ease3((T - 1.1) / 0.9) : T < 3.6 ? 1 : 1 - ease3((T - 3.6) / 1.3);
-      wheelRoot.rotation.set(-0.16 - 1.05 * tiltK, 0, 0);
-      // 全回転: 飛びながらマスが当たりの色に染まる(合体のたびに残りも)
-      if (T > 4.4 && zenShown < zen.length) { showZen(zen.length); flash('#fff4d0', 0.6, 0.95); sound.kyuin(); fx.shake = 1.1; }
-      // 光が集まる間は、なめらかに高まっていく音だけ(ひとつずつは鳴らさない)
-      if (T >= 4.9 && !meteor.swelled) { meteor.swelled = true; sound.swell(3.6); }
+      wheelRoot.rotation.x = -0.16 - 1.05 * tiltK; if (T < 4.9) wheelRoot.rotation.z = 0;
+      // 光が集まる間は、駆け上がっていく音(ひとつずつは鳴らさない)
+      if (T >= 4.9 && !meteor.swelled) { meteor.swelled = true; sound.rush(fol.length ? Math.max(...fol.map((f) => f.t0 + 0.9 + f.dur)) - 4.9 + 1.1 : 2.4); }
       // 尾と光
       const c = wheelRoot.getWorldPosition(wp);
       if (T > 1.1) wTrail.push(c);
@@ -2749,36 +2772,80 @@ function meteorFx(winner, landIdx) {
       }
       // 6. まばゆく光って決定
       const allIn = fol.every((f) => f.done) && T > 5.4;
-      if (allIn && !climax) { climax = T; showZen(zen.length); sound.swell(1.1); meteor.flare = glowSprite(0xfff6d0, 1); meteor.objs.push(meteor.flare); }
+      if (allIn && !climax) { climax = T; meteor.flare = glowSprite(0xe8e0ff, 1); meteor.objs.push(meteor.flare); }
       if (climax && !ended) {
         const k = clamp01((T - climax) / 1.1);
-        core.scale.setScalar(lerpN(7 + absorbed * 1.6, 70, k * k)); core.material.opacity = 0.6 + 0.4 * k;
+        core.scale.setScalar(lerpN(7 + absorbed * 1.6, 34, k * k)); core.material.opacity = 0.6 + 0.4 * k;
         // 横に伸びる光の筋(玉が満ちるほど長く)
-        meteor.flare.position.copy(center).add(tmp.set(0, 0, 3)); meteor.flare.scale.set(10 + 150 * k * k, 0.6 + 2.4 * k, 1); meteor.flare.material.opacity = 0.9 * k; bloom.strength = 0.6 + 1.6 * k; fx.shake = 0.4 * k;
-        bgUniforms.uBright.value = ease3(k);
-        sky.visible = k < 0.7;
+        meteor.flare.position.copy(center).add(tmp.set(0, 0, 3)); meteor.flare.scale.set(10 + 150 * k * k, 0.6 + 2.4 * k, 1); meteor.flare.material.opacity = 0.85 * k; bloom.strength = 0.6 + 0.8 * k; fx.shake = 0.4 * k;
         wheelRoot.scale.setScalar(Math.max(0.001, 1 - ease3(clamp01((k - 0.25) / 0.6))));
         if (Math.random() < dt * 40) for (let i = 0; i < 6; i++) { const a = rand(0, TAU), sp = rand(8, 20); sparks.emit(center.x, center.y, center.z + 2, Math.cos(a) * sp, Math.sin(a) * sp, rand(-2, 2), AMB.light, rand(0.3, 0.8), rand(0.6, 1.2), 0, 0.97); }
         if (k >= 1 && !ended) {
-          ended = true; shockwave(center.clone().add(tmp.set(0, 0, 2)), false, 60, 0.8); flash('#fffbe6', 1.0, 1); sound.kakutei(); fx.shake = 1.4;
-          core.scale.setScalar(9); core.material.opacity = 0.5; bloom.strength = 0.7; meteor.flare.visible = false; bgUniforms.uBright.value = 0.85;
+          // 爆発して銀河になる
+          ended = true; shockwave(center.clone().add(tmp.set(0, 0, 2)), false, 60, 0.9); flash('#e6dcff', 0.7, 0.75); sound.kakutei(); sound.galaxy(); fx.shake = 1.2;
+          core.scale.setScalar(6); core.material.opacity = 0.75; core.material.color.set(0xffe2b0); meteor.flare.visible = false;
+          for (const tr of meteor.trails) tr.u.uFade.value = 0;
+          meteor.sky.children[3].visible = false;
+          meteor.galaxy = buildGalaxy(center); meteor.objs.push(meteor.galaxy); meteor.galT = 0;
+          $('result').classList.add('meteor');
           resolve();
         }
+      }
+      // 銀河: 広がりながら回る。背景は星雲に
+      if (meteor.galaxy) {
+        meteor.galT += dt;
+        const g = meteor.galaxy.material.uniforms;
+        g.uGrow.value = ease3(meteor.galT / 1.6); g.uTime.value += dt;
+        bgUniforms.uBright.value = ease3(clamp01(meteor.galT / 1.2));
+        bloom.strength = 0.55;
       }
       // 衝撃波
       for (const s of meteor.fx) { s.t += dt; const k = clamp01(s.t / s.dur); s.m.scale.setScalar(1 + s.size * ease3(k)); s.m.material.opacity = 1 - k; s.m.visible = k < 1; }
     };
   });
 }
+// 渦巻き銀河: 3本の腕。中心は暖かい白、腕は桃・紫、外側は青。内側ほど速く回る
+function buildGalaxy(at) {
+  const N = 9000, pos = new Float32Array(N * 3), col = new Float32Array(N * 3), sz = new Float32Array(N), Rg = 15;
+  const c = new THREE.Color(), core = new THREE.Color('#ffe9c4'), mid = new THREE.Color('#ff7ad1'), mid2 = new THREE.Color('#9b6bff'), out = new THREE.Color('#5aa8ff');
+  for (let i = 0; i < N; i++) {
+    const r = Rg * Math.pow(Math.random(), 1.7), arm = i % 3, f = r / Rg;
+    const spread = (1 - f * 0.6) * 0.55;
+    const a = arm * TAU / 3 + r * 0.42 + (Math.random() - 0.5) * spread * 2.2;
+    const jitter = (Math.random() - 0.5) * (0.4 + 1.6 * (1 - f)) * (Math.random() < 0.3 ? 2 : 1);
+    pos.set([Math.cos(a) * r + jitter, Math.sin(a) * r + (Math.random() - 0.5) * 0.9, (Math.random() - 0.5) * (1.2 - f) * 1.4], i * 3);
+    if (f < 0.18) c.copy(core).lerp(mid, f / 0.18 * 0.4); else if (f < 0.55) c.copy(mid).lerp(mid2, (f - 0.18) / 0.37); else c.copy(mid2).lerp(out, (f - 0.55) / 0.45);
+    if (Math.random() < 0.08) c.set('#ffffff');
+    const b = 0.6 + Math.random() * 0.8; col.set([c.r * b, c.g * b, c.b * b], i * 3);
+    sz[i] = (Math.random() < 0.04 ? 2.6 : 1) * (0.35 + Math.random() * 0.55) * (f < 0.15 ? 1.4 : 1);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('aColor', new THREE.BufferAttribute(col, 3)); g.setAttribute('aSize', new THREE.BufferAttribute(sz, 1));
+  const m = new THREE.ShaderMaterial({
+    uniforms: { uTex: { value: sparkTex }, uScale: sparks.uniforms.uScale, uGrow: { value: 0 }, uTime: { value: 0 } }, ...ADD,
+    vertexShader: `attribute vec3 aColor; attribute float aSize; uniform float uScale, uGrow, uTime; varying vec3 vC;
+      void main(){ vec3 p = position; float r = length(p.xy); float ang = uTime * (0.9 / (0.6 + r * 0.35)) + (1.0 - uGrow) * 2.5;
+        float cs = cos(ang), sn = sin(ang); p.xy = mat2(cs, sn, -sn, cs) * p.xy * mix(0.03, 1.0, uGrow);
+        vec4 mv = modelViewMatrix * vec4(p, 1.0); gl_PointSize = aSize * 0.5 * uScale / -mv.z; gl_Position = projectionMatrix * mv;
+        vC = aColor * (0.55 + 0.45 * sin(uTime * 3.0 + position.x * 7.0)); }`,
+    fragmentShader: `uniform sampler2D uTex; varying vec3 vC; void main(){ vec4 t = texture2D(uTex, gl_PointCoord); gl_FragColor = vec4(vC * t.a * 0.55, 1.0); }`,
+  });
+  const pts = new THREE.Points(g, m); pts.frustumCulled = false;
+  pts.position.copy(at); pts.lookAt(camera.position); pts.rotateX(-0.95); pts.rotateZ(0.4);
+  scene.add(pts);
+  return pts;
+}
 function endMeteor() {
   if (!meteor) return;
   for (const t of meteor.trails) t.dispose();
-  for (const o of meteor.objs) { scene.remove(o); o.material.dispose(); }
+  for (const o of meteor.objs) { scene.remove(o); o.geometry?.dispose(); o.material.dispose(); }
+  { const li = meteor.landIdx; phi = (SL[li].a0 + SL[li].a1) / 2 - Math.PI / 2; }   // 戻った盤は当たりのマスが針の下
   for (const s of meteor.fx) { scene.remove(s.m); s.m.geometry.dispose(); s.m.material.dispose(); }
   scene.remove(meteor.sky); meteor.sky.traverse((o) => { if (o.geometry) { o.geometry.dispose(); o.material.dispose(); } });
   meteor = null;
   bgUniforms.uSky.value = 0; bgUniforms.uBright.value = 0; bloom.strength = 0.45;
   wheelRoot.position.set(0, 0, 0); wheelRoot.scale.set(1, 1, 1); wheelRoot.rotation.set(-0.16, 0, 0);
+  bgUniforms.uBright.value = 0;
   $('result').classList.remove('meteor');
   camTarget(camPos, camLook);
 }
@@ -3414,7 +3481,7 @@ function frame(now) {
   bgUniforms.uDark.value = fx.dark;
   bgUniforms.uReach.value = fx.reach;
   bgUniforms.uSea.value += ((THEMES[THEME].sea ? fx.reach : 0) - bgUniforms.uSea.value) * Math.min(1, dt * 3);
-  bgUniforms.uWin.value = fx.win;
+  bgUniforms.uWin.value = fx.win * (meteor ? 0.12 : 1);
   bgUniforms.uDim.value = fx.dim;
   // 粒ほど極端にせず、通常 0.43 → 虹のPUSH待ち 1.0 くらいの幅で追従
   bgUniforms.uGlow.value = 0.4 + 0.6 * Math.min(1, fx.ambNow / 3.4);
