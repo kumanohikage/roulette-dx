@@ -541,7 +541,7 @@
   .sw { appearance: none; -webkit-appearance: none; width: 34px; height: 18px; border-radius: 99px; background: #3a2c1a; border: 1px solid #8a6a3a; position: relative; cursor: pointer; margin: 0; transition: background .2s; }
   .sw::after { content: ''; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: #c9b089; transition: left .2s; }
   .sw:checked { background: #d98a00; border-color: #ffd27a; } .sw:checked::after { left: 18px; background: #fff; }
-  #items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; overflow: auto; min-height: 0; flex: 1; scrollbar-width: thin; scrollbar-color: #6b5230 transparent; }
+  #items { overflow-x: hidden !important; list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; overflow: auto; min-height: 0; flex: 1; scrollbar-width: thin; scrollbar-color: #6b5230 transparent; }
   .it { display: flex; align-items: center; gap: 8px; padding: 4px 6px 4px 8px; border-radius: 8px; border: 1px solid rgba(217,119,6,.3); background: rgba(255,255,255,.03); }
   .it.cur { border: 2px solid #ffd27a; padding: 3px 5px 3px 7px; background: rgba(255,210,122,.1); }
   .it.off { opacity: .45; }
@@ -552,6 +552,26 @@
   .it.cur .tag { background: #ffd27a; color: #2a1a05; }
   .it .del { width: 24px; height: 24px; border: 0; border-radius: 6px; background: none; color: #a89070 !important; opacity: 0; flex: none; }
   .it:hover .del, .it .del:focus { opacity: 1; } .it .del:hover { background: rgba(255,80,40,.2); color: #fff !important; }
+  /* ガチャ: 等級の見出し・つまみ・追加の欄 */
+  .th { display: flex; align-items: center; gap: 6px; padding: 8px 2px 2px; margin-top: 4px; border-top: 1px solid rgba(217,119,6,.3); }
+  .th:first-child { border-top: 0; margin-top: 0; padding-top: 0; }
+  .th .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--tc); flex: none; }
+  .th .tn { flex: 1; min-width: 0; padding: 3px 4px; border: 1px solid transparent; border-radius: 5px; background: none; color: #fff3d6; font: inherit; font-size: 14px; }
+  .th .tn:hover { border-color: rgba(217,119,6,.35); } .th .tn:focus { outline: none; border-color: #ffd27a; background: rgba(0,0,0,.25); }
+  .th .pctw { display: flex; align-items: center; gap: 2px; color: #c9b089; }
+  .th .tp { width: 56px; padding: 3px 6px; text-align: right; border-radius: 6px; border: 1px solid rgba(217,119,6,.5); background: rgba(0,0,0,.2); color: inherit; font: inherit; }
+  .th .rem { color: #c9b089; font-weight: 400; white-space: nowrap; }
+  .th.hz { color: #a89070; }
+  .th.hz:not(.on) .hzl { color: #8a7458; font-weight: 400; }
+  .hzl { cursor: pointer; font-size: 14px; }
+  .ta { list-style: none; }
+  .add-t { width: 100%; resize: none; padding: 5px 8px; border-radius: 7px; border: 1px dashed rgba(217,119,6,.45); background: none; color: inherit; font: inherit; font-weight: 700; }
+  .add-t:focus { outline: none; border-style: solid; border-color: #ffd27a; background: rgba(0,0,0,.2); }
+  body.gacha #add { display: none; }
+  .grip { cursor: grab; color: #8a7458; padding: 0 2px; letter-spacing: -3px; touch-action: none !important; user-select: none; flex: none; }
+  .grip:hover { color: #ffd27a; }
+  .it.dragging { opacity: .25; }
+  .it.ghost { position: fixed; z-index: 200; pointer-events: none; background: #2a1d0e; border-color: #ffd27a; box-shadow: 0 8px 24px rgba(0,0,0,.6); }
   #add { resize: none; padding: 8px 10px; border-radius: 8px; border: 1px dashed rgba(217,119,6,.6); background: rgba(0,0,0,.2); color: inherit; font: inherit; font-weight: 700; }
   #add:focus { outline: none; border-style: solid; border-color: #ffd27a; }
   .kv { display: grid; grid-template-columns: 56px 1fr; align-items: center; gap: 10px; }
@@ -570,6 +590,8 @@
   /* 回している間は、一覧とヘッダーは触れない(薄く) */
   body.spinning #panel, body.spinning #topbar, body.spinning #spinbar { opacity: .3; pointer-events: none; }
   body.empty #btn-spin, body.empty #btn-spin2 { opacity: .35; pointer-events: none; animation: none; }
+  #result-text.draft .r-tier .glw { --tw: min(calc(46 * var(--vw)), calc(var(--ar, 4) * 13 * var(--vh))); width: var(--tw); margin-bottom: calc(-0.1 * var(--tw) / var(--ar, 4)); }
+  #result.end #result-text.miss ~ .rbg, #result.end:has(.miss) .rbg { background: radial-gradient(circle, rgba(40,44,54,.35), rgba(10,12,16,.75)); }
   #result-text.draft .r-emoji { -webkit-text-fill-color: initial; -webkit-text-stroke: 0; color: #fff; background: none; font: 400 calc(16 * var(--vh))/1 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif; filter: drop-shadow(0 6px 18px rgba(0,0,0,.6)); margin-bottom: calc(1 * var(--vh)); }
   @media (max-width: 760px) {
     #app { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto min(100vw, 46vh) minmax(0, 1fr) auto; grid-template-areas: "top" "stage" "panel" "spin"; }
@@ -615,7 +637,7 @@
       <div id="set-pop" class="pop" hidden>
         <ul id="set-list"></ul>
         <div class="pop-sec">＋ 新しい組</div>
-        <div class="pop-row"><button data-new="empty">空</button><button data-new="dinner">夕ごはん</button><button data-new="order">順番決め</button></div>
+        <div class="pop-row"><button data-new="empty">空</button><button data-new="dinner">夕ごはん</button><button data-new="order">順番決め</button><button data-new="gacha">ガチャ</button></div>
       </div>
     </div>
     <span class="sp"></span>
@@ -633,7 +655,7 @@
     </section>
     <section id="p-set" hidden>
       <label class="kv"><span>名前</span><input id="set-name" type="text" maxlength="30"></label>
-      <div class="kv"><span>演出</span><div class="seg" id="len-seg"><button data-v="short">短め</button><button data-v="normal">ふつう</button><button data-v="long">たっぷり</button></div></div>
+      <div class="kv"><span>モード</span><div class="seg" id="mode-seg"><button data-v="normal">ふつう</button><button data-v="gacha">ガチャ</button></div></div>
       <div class="prow"><button id="set-dup" class="pbtn">複製</button><span class="sp"></span><button id="set-del" class="pbtn warn">削除</button></div>
       <div id="ver" class="ver"></div>
     </section>
@@ -669,35 +691,60 @@ const LEADER_PALETTE = [
  * ===================================================================== */
 const STORE_KEY = 'rouletteDX';
 const TEMPLATES = {
-  dinner: () => ({ name: '🍛 今日の夕ごはん', items: ['🍛 カレー', '🍜 ラーメン', '🍚 牛丼', '🍔 ハンバーガー', '🍕 ピザ', '🍣 寿司', '🍗 唐揚げ', '🏪 コンビニ'] }),
-  order: () => ({ name: '📋 順番決め', items: ['Aさん', 'Bさん', 'Cさん', 'Dさん'], autoOff: true }),
+  dinner: () => ({ name: '今日の夕ごはん', items: ['カレー', 'ラーメン', '牛丼', 'ハンバーガー', 'ピザ', '寿司', '唐揚げ', 'コンビニ'] }),
+  order: () => ({ name: '順番決め', items: ['Aさん', 'Bさん', 'Cさん', 'Dさん'], autoOff: true }),
+  gacha: () => ({ name: 'ガチャ', items: ['特賞', 'A賞', 'B賞', 'C賞'], mode: 'gacha', tierOf: { 特賞: 0, A賞: 1, B賞: 2, C賞: 2 } }),
   empty: () => ({ name: '新しい組', items: [] }),
 };
 const newId = () => Math.random().toString(36).slice(2, 10);
-const LENGTHS = ['short', 'normal', 'long'];
 function normSet(x) {
   x.id = x.id || newId();
   x.name = String(x.name || '組').slice(0, 30);
   x.items = [...new Set((x.items || []).filter((v) => typeof v === 'string' && v.trim()).map((v) => v.trim()))];
   x.off = x.off && typeof x.off === 'object' ? x.off : {};
   for (const k of Object.keys(x.off)) if (!x.items.includes(k)) delete x.off[k];
-  x.length = LENGTHS.includes(x.length) ? x.length : 'short';
+  delete x.length;
   x.autoOff = !!x.autoOff; x.hidden = !!x.hidden; x.last = x.items.includes(x.last) ? x.last : '';
+  // ガチャ: 等級は3つ(上から)。確率は等級ごと。いちばん下の残りは自動(はずれをオンにしたら、はずれが残り)
+  x.mode = x.mode === 'gacha' ? 'gacha' : 'normal';
+  const dt = defaultTiers();
+  x.tiers = dt.map((d, i) => { const t = (Array.isArray(x.tiers) && x.tiers[i]) || {}; return { name: String(t.name || d.name).slice(0, 12), pct: clampPct(t.pct ?? d.pct) }; });
+  x.hazure = { on: !!(x.hazure && x.hazure.on) };
+  const to = x.tierOf && typeof x.tierOf === 'object' ? x.tierOf : {};
+  x.tierOf = {};
+  for (const n of x.items) x.tierOf[n] = [0, 1, 2].includes(to[n]) ? to[n] : 2;
   return x;
 }
-const makeSet = (t) => normSet({ name: t.name, items: [...t.items], autoOff: !!t.autoOff });
+const defaultTiers = () => [{ name: '超大当たり', pct: 1 }, { name: '大当たり', pct: 5 }, { name: '当たり', pct: 30 }];
+const clampPct = (v) => { v = Math.round(Number(v) * 100) / 100; return Number.isFinite(v) ? Math.min(100, Math.max(0, v)) : 0; };
+// 残りの等級(はずれがオンならはずれ、オフなら当たり)の確率 = 100 − ほかの合計
+const remKey = (set) => (set.hazure.on ? 'h' : 2);
+function tierPct(set, k) {
+  if (k === remKey(set)) return Math.max(0, 100 - [0, 1, 2].filter((i) => i !== k).reduce((s, i) => s + set.tiers[i].pct, 0));
+  return k === 'h' ? 0 : set.tiers[k].pct;
+}
+const makeSet = (t) => normSet({ ...t, items: [...t.items], tierOf: { ...(t.tierOf || {}) }, autoOff: !!t.autoOff });
 let store = loadStore();
 function loadStore() {
   try {
     const v = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
     if (v && Array.isArray(v.sets) && v.sets.length) {
+      if (!(v.v >= 2)) {
+        const st = (s) => String(s || '').replace(/^(?:\p{Extended_Pictographic}|\uFE0F|\u200D)+\s*/u, '') || String(s || '');
+        for (const x of v.sets) {
+          x.name = st(x.name); x.last = st(x.last);
+          x.items = (x.items || []).map(st);
+          x.off = Object.fromEntries(Object.entries(x.off || {}).map(([k, o]) => [st(k), o]));
+        }
+        v.v = 2;
+      }
       v.sets = v.sets.map(normSet);
       if (!v.sets.some((x) => x.id === v.cur)) v.cur = v.sets[0].id;
       return v;
     }
   } catch (_) { /* 保存できない環境でも動く */ }
   const d = makeSet(TEMPLATES.dinner());
-  return { cur: d.id, sets: [d] };
+  return { v: 2, cur: d.id, sets: [d] };
 }
 function saveStore() { try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); return true; } catch (_) { return false; } }
 const curSet = () => store.sets.find((x) => x.id === store.cur);
@@ -711,22 +758,80 @@ function splitEmoji(name) { const m = name.match(EMOJI_RE); return m ? { emoji: 
 const LEADER_PALETTE2 = ['#e0302c', '#1f63d6', '#22994a', '#8c3fbf', '#ec7a00', '#0a97a6', '#d81b72', '#7a5230', '#c99700', '#5a9e1a', '#2c3e8f', '#a3243b'];
 const LEADER_COLORS = LEADER_PALETTE2;
 function colorFor(i, n) { let k = i % 12; if (n > 12 && n % 12 === 1 && i === n - 1) k = 6; return LEADER_PALETTE2[k]; }
-// 3D の演出はドラフト版の「リーダー」の形で書いてあるので、いまの組から作って渡す
-const draft = { pick: '', leaders: ['？'], image: '', crop: { x: 0, y: 0, zoom: 1 }, colors: [], imgBg: '' };
+// ガチャの盤の色: 等級ごとに(上から 金・赤・青、はずれは灰)。同じ等級の中は明るさを交互に
+const TIER_COL = ['#e2a800', '#e0302c', '#1f63d6'], HAZURE_COL = '#5b6070';
+const shade = (hex, k) => `#${new THREE.Color(hex).lerp(new THREE.Color('#ffffff'), k).getHexString()}`;
+// 3D の演出はドラフト版の「リーダー」の形で書いてあるので、いまの組から作って渡す。
+// ガチャでは、リーダー = 候補(とはずれ)。weights = 当たる確率、tier = 等級(3 = はずれ)
+const draft = { pick: '', leaders: ['？'], image: '', crop: { x: 0, y: 0, zoom: 1 }, colors: [], imgBg: '', weights: null, tier: null, hazure: -1 };
 function syncDraft() {
-  const a = activeItems();
-  draft.leaders = a.length ? a : ['？'];
-  draft.colors = draft.leaders.map((_, i) => colorFor(i, draft.leaders.length));
-  draft.pick = splitEmoji(curSet().name).text || curSet().name;
-  document.body.classList.toggle('empty', !a.length);
+  const set = curSet(), a = activeItems();
+  draft.pick = splitEmoji(set.name).text || set.name;
+  draft.weights = null; draft.tier = null; draft.hazure = -1;
+  if (set.mode === 'gacha') {
+    // 候補のない等級は出ない。その分の確率は、残った等級に比例で配り直す(合計を1にそろえる)
+    const leads = [], w = [], tier = [];
+    for (const k of [0, 1, 2]) {
+      const its = a.filter((n) => set.tierOf[n] === k), p = tierPct(set, k);
+      if (!its.length || p <= 0) continue;
+      for (const n of its) { leads.push(n); w.push(p / its.length); tier.push(k); }
+    }
+    if (set.hazure.on && tierPct(set, 'h') > 0) { draft.hazure = leads.length; leads.push('はずれ'); w.push(tierPct(set, 'h')); tier.push(3); }
+    const sum = w.reduce((s, v) => s + v, 0);
+    draft.leaders = leads.length ? leads : ['？'];
+    draft.weights = leads.length ? w.map((v) => v / sum) : null;
+    draft.tier = leads.length ? tier : null;
+    let run = -1, prev = -1;
+    draft.colors = draft.leaders.map((_, i) => { const t = tier ? tier[i] : 3; run = t === prev ? run + 1 : 0; prev = t; return t === 3 ? HAZURE_COL : shade(TIER_COL[t], run % 2 ? 0.28 : 0); });
+  } else {
+    draft.leaders = a.length ? a : ['？'];
+    draft.colors = draft.leaders.map((_, i) => colorFor(i, draft.leaders.length));
+  }
+  document.body.classList.toggle('empty', !a.length && draft.hazure < 0);
   applyDraftLayout();
 }
-// マス数: 候補が少ないときは同じ候補を何度か並べて12マス前後に。10以上なら1つずつ
+// マス数: ふつうは、候補が少ないときは同じ候補を何度か並べて12マス前後に(10以上なら1つずつ)。
+// ガチャは候補1つに1マスで、広さが確率(盤の見た目と確率を一致させる)
 const slicesPer = (n) => (n >= 10 ? 1 : Math.max(2, Math.round(12 / n)));
 const MODES = { light: { total: 12, winIndex: 0 } };
-function applyDraftLayout() { MODES.light.total = draft.leaders.length * slicesPer(draft.leaders.length); }
+let SL = [];   // マス: { lead, a0, a1 }(a は 0〜TAU、反時計回り)
+function applyDraftLayout() {
+  const n = draft.leaders.length;
+  SL = [];
+  if (draft.weights) {
+    let a = 0;
+    draft.weights.forEach((w, i) => { SL.push({ lead: i, a0: a, a1: a + w * TAU }); a += w * TAU; });
+    SL[SL.length - 1].a1 = TAU;
+  } else {
+    const total = n * slicesPer(n), arc = TAU / total;
+    for (let i = 0; i < total; i++) SL.push({ lead: i % n, a0: i * arc, a1: (i + 1) * arc });
+  }
+  MODES.light.total = SL.length;
+}
 const leaderColor = (i) => (draft.colors && draft.colors[i]) || LEADER_COLORS[i % LEADER_COLORS.length];
-const leaderOf = (i) => i % draft.leaders.length;
+const leaderOf = (i) => SL[((i % SL.length) + SL.length) % SL.length].lead;
+// マス k の始まりの角度(k は一周を超えてもよい)と幅、角度 a のマス
+const sliceA0 = (k) => SL[((k % SL.length) + SL.length) % SL.length].a0 + Math.PI * 2 * Math.floor(k / SL.length);
+const sliceW = (k) => { const s = SL[((k % SL.length) + SL.length) % SL.length]; return s.a1 - s.a0; };
+function sliceAt(a) {
+  a = ((a % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+  let lo = 0, hi = SL.length - 1;
+  while (lo < hi) { const m = (lo + hi + 1) >> 1; if (SL[m].a0 <= a) lo = m; else hi = m - 1; }
+  return lo;
+}
+// 当たる候補の抽選(暗号用の乱数)。ふつうは均等、ガチャは確率の重み
+function drawWinner(n) {
+  if (!draft.weights) return fairInt(n);
+  const a = new Uint32Array(2); crypto.getRandomValues(a);
+  let r = (a[0] * 2 ** 21 + (a[1] >>> 11)) / 2 ** 53;
+  for (let i = 0; i < n; i++) { if ((r -= draft.weights[i]) < 0) return i; }
+  return n - 1;
+}
+// 止まるマス(landIdx)から、針が待つマス(リーチの人のマス)までの数。同じ人のマスを手前に探す
+function passFrom(landIdx, lead, limit = SL.length) {
+  for (let k = 0; k < limit; k++) if (leaderOf(landIdx - k) === lead) return k;
+  return -1;
+}
 
 const TAU = Math.PI * 2;
 const R = 5;           // ホイール半径(ワールド単位)
@@ -1039,16 +1144,34 @@ function planDraft(winner, n) {
   };
 }
 
-// 演出の長さ: 短め = リーチなしで止まる / ふつう = 半分はリーチ(PUSH なし) / たっぷり = 毎回リーチ(ドラフト版と同じ)
 // 将棋の小ネタ(駒のステップアップ・駒群・巨大王将・振り駒)は将棋のテーマだけ
 const SHOGI = false;
 const quickPlan = () => ({ ...zenkaiPlan(), zenkaiten: false, ippatsu: true, heat: 'normal', heatPath: ['normal'] });
+// ガチャの熱さ: 当たった等級で決まりやすい(超大当たりほど虹・ゼブラ・金、下の等級とはずれはほぼ通常)
+const GACHA_HEAT = [{ rainbow: 40, zebra: 25, gold: 30, normal: 5 }, { zebra: 10, gold: 45, normal: 45 }, { gold: 8, normal: 92 }, { gold: 5, normal: 95 }];
+const GACHA_KIND = [{ quick: 5, reach: 35, full: 60 }, { quick: 25, reach: 45, full: 30 }, { quick: 35, reach: 40, full: 25 }, { quick: 35, reach: 40, full: 25 }];
 function planFor(winner, n) {
   if (PREVIEW) return previewPlan(winner, n);
-  const len = curSet().length;
-  if (len === 'short' || (len === 'normal' && chance(0.5))) return quickPlan();
-  const p = planDraft(winner, n);
-  if (len === 'normal') { p.push = false; p.mash = false; }
+  const tier = draft.tier ? draft.tier[winner] : -1;
+  // 回すたびに、すぐ止まる / リーチ / リーチ+PUSH のどれか(長さはばらばら)
+  const kind = pickW(tier >= 0 ? GACHA_KIND[tier] : { quick: 35, reach: 40, full: 25 });
+  if (kind === 'quick') return quickPlan();
+  let p = planDraft(winner, n);
+  if (tier >= 0) {
+    // 全回転は「確定」の見せ方なので、上の2つの等級だけ
+    if (p.zenkaiten && tier >= 2) return quickPlan();
+    if (tier >= 2) p.reachZenkai = false;
+    if (!p.zenkaiten) {
+      const heat = pickW(GACHA_HEAT[tier]);
+      const other = () => { let i; do { i = Math.floor(Math.random() * n); } while (i === winner && n > 1); return i; };
+      p.heat = heat; p.heatPath = [heat];
+      p.leads = [chance(REACH_REL[heat]) ? winner : other()];
+      p.gekiatsu = (heat === 'gold' || heat === 'zebra') && chance(0.35);
+      p.push = chance(PUSH_RATE[heat]); p.mash = p.push && heat === 'rainbow';
+    }
+  }
+  if (kind === 'reach') { p.push = false; p.mash = false; }
+  p.full = kind === 'full';
   if (!SHOGI) { p.steps = 0; p.swarm = false; p.gimmick = false; p.furigoma = -1; }
   return p;
 }
@@ -1061,6 +1184,7 @@ function fairInt(n) {
 /* ---------- つるつる文字(パチンコ文字風 SVG) ---------- */
 let glossId = 0;
 const GLOSS = {
+  silver:  { rim: ['#ffffff', '#e8ecf4', '#8a92a4', '#ffffff', '#a0a8b8', '#2a2e38'], face: ['#ffffff', '#d4d9e2', '#9aa2b2', '#545b6a', '#c4cad6', '#eef1f6'], line: '#15181f', ext: '#20242c' },
   gold:    { rim: ['#ffffff', '#dfe8ff', '#8a96b8', '#ffffff', '#9aa6c8', '#2a3050'], face: ['#fff6c8', '#ffd21a', '#f08a00', '#a84200', '#ffc21a', '#ffe680'], line: '#3a0000', ext: '#4a0d00' },
   red:     { rim: ['#fff7c0', '#ffd34a', '#a86400', '#fff2a0', '#c07800', '#5a3000'], face: ['#ffd0d0', '#ff4a4a', '#e60000', '#7a0000', '#ff2a2a', '#ff9a9a'], line: '#200000', ext: '#3a0800' },
   purple:  { rim: ['#ffffff', '#e6d8ff', '#8a72b8', '#ffffff', '#a090c8', '#2a2050'], face: ['#ffd8fa', '#ff5ad8', '#d000b0', '#5a0080', '#ff3ad0', '#ffa8f0'], line: '#12001f', ext: '#20002f' },
@@ -1309,16 +1433,21 @@ function canvasTex(c) { const t = new THREE.CanvasTexture(c); t.colorSpace = THR
 
 // allWinner: 全回転用。全マスを勝者の名前で描く
 function drawWheel(mode, allWinner = -1) {
-  const { total } = MODES[mode];
+  const total = SL.length;
   const S = 2048, c = S / 2, r = S / 2 - 6;
   const mapC = makeCanvas(S), emC = makeCanvas(S);
   const m = mapC.getContext('2d'), e = emC.getContext('2d');
   e.fillStyle = '#000'; e.fillRect(0, 0, S, S);
-  const arc = TAU / total;
   const all = allWinner >= 0;
+  // 文字の大きさは全部のマスでそろえる(長い名前は、太さはそのままで縦に詰める)。
+  // ガチャで細いマスだけは、そのマスに入る大きさまで小さく、入らなければ書かない
+  const ws = SL.map((s) => s.a1 - s.a0).sort((x, y) => x - y);
+  const wRef = draft.weights ? ws[Math.floor(ws.length / 2)] : TAU / total;
+  const size0 = Math.min(150, r * 0.43 * wRef);
+  const room = r * 0.56;
   for (let i = 0; i < total; i++) {
     // 数学の角度 a は 3D では反時計回り。キャンバスは y が下向きなので -a で描く。
-    const a0 = i * arc, a1 = a0 + arc;
+    const { a0, a1 } = SL[i];
     const li = all ? allWinner : leaderOf(i);
     const col = new THREE.Color(leaderColor(li));
     const hex = (cc) => `#${cc.getHexString()}`;
@@ -1327,7 +1456,7 @@ function drawWheel(mode, allWinner = -1) {
     const grad = m.createRadialGradient(c, c, r * 0.12, c, c, r);
     grad.addColorStop(0, hex(light)); grad.addColorStop(0.6, hex(col)); grad.addColorStop(1, hex(dark));
     m.fillStyle = grad; m.fill(p);
-    m.lineWidth = 8; m.strokeStyle = all ? '#ffe680' : '#d9a420'; m.stroke(p);
+    m.lineWidth = a1 - a0 < 0.02 ? 3 : 8; m.strokeStyle = all ? '#ffe680' : '#d9a420'; m.stroke(p);
     // 発光: 名前の色をうっすら(全回転のときは強め)
     e.fillStyle = hex(col.clone().multiplyScalar(all ? 0.55 : 0.18)); e.fill(p);
     e.lineWidth = all ? 14 : 4; e.strokeStyle = all ? '#ffcc33' : '#3a2600'; e.stroke(p);
@@ -1335,9 +1464,10 @@ function drawWheel(mode, allWinner = -1) {
     // 縦書きの名前: 文字の上側が外周を向く。針(上)に来たとき正立する。
     const name = draft.leaders[li] || '';
     const chars = [...name];
+    const size = Math.min(size0, r * 0.43 * (a1 - a0));
+    if (size < 40 || !chars.length) continue;
+    const q = Math.min(1, room / (chars.length * size * 1.02));   // 縦に詰める割合
     const mid = (a0 + a1) / 2;
-    const room = r * 0.52;
-    const size = Math.min(170, r * 0.86 * arc * 0.5, room / Math.max(1, chars.length * 1.02));
     for (const ctx of all ? [m, e] : [m]) {
       ctx.save();
       ctx.translate(c, c); ctx.rotate(-mid);
@@ -1345,15 +1475,16 @@ function drawWheel(mode, allWinner = -1) {
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       chars.forEach((ch, k) => {
         ctx.save();
-        ctx.translate(r * 0.88 - size * 0.55 - k * size * 1.02, 0);
+        ctx.translate(r * 0.88 - size * q * 0.55 - k * size * q * 1.02, 0);
         ctx.rotate(Math.PI / 2);
-        if (ctx === m) {
-          ctx.lineWidth = size * 0.16; ctx.strokeStyle = 'rgba(30,10,0,.85)'; ctx.lineJoin = 'round';
-          if ('ー－―‐-〜～…'.includes(ch)) { ctx.save(); ctx.rotate(Math.PI / 2); ctx.strokeText(ch, 0, 0); ctx.restore(); } else ctx.strokeText(ch, 0, 0);
-          ctx.fillStyle = all ? '#ffe066' : '#ffffff';
-        } else ctx.fillStyle = '#ffd84a';
+        ctx.scale(1, q);
         // 縦書きでは長音・ダッシュ・波線は縦向きにする
         if ('ー－―‐-〜～…'.includes(ch)) ctx.rotate(Math.PI / 2);
+        if (ctx === m) {
+          ctx.lineWidth = size * 0.16; ctx.strokeStyle = 'rgba(30,10,0,.85)'; ctx.lineJoin = 'round';
+          ctx.strokeText(ch, 0, 0);
+          ctx.fillStyle = all ? '#ffe066' : '#ffffff';
+        } else ctx.fillStyle = '#ffd84a';
         ctx.fillText(ch, 0, 0);
         ctx.restore();
       });
@@ -1482,12 +1613,43 @@ function buildPins(mode) {
   pins = new THREE.InstancedMesh(new THREE.CylinderGeometry(thin ? 0.045 : 0.09, thin ? 0.045 : 0.09, 0.35, 12), mode === 'light' ? goldMat : purpleMetal, total);
   const d = new THREE.Object3D();
   for (let i = 0; i < total; i++) {
-    const a = i * TAU / total;
+    const a = SL[i].a0;
     d.position.set(Math.cos(a) * (R - 0.14), Math.sin(a) * (R - 0.14), 0.36);
     d.rotation.set(Math.PI / 2, 0, 0);
     d.updateMatrix(); pins.setMatrixAt(i, d.matrix);
   }
   spinner.add(pins);
+}
+
+// ガチャで細い等級(盤に名前が入らない)は、外周の外に等級の名札を出す。盤と一緒に回る
+let tierLabels = null;
+function buildTierLabels() {
+  if (tierLabels) { tierLabels.traverse((o) => { if (o.material) { o.material.map?.dispose(); o.material.dispose(); } }); spinner.remove(tierLabels); tierLabels = null; }
+  if (!draft.tier) return;
+  tierLabels = new THREE.Group();
+  for (const k of [0, 1, 2, 3]) {
+    const idx = SL.map((_, i) => i).filter((i) => draft.tier[SL[i].lead] === k);
+    if (!idx.length) continue;
+    const a0 = SL[idx[0]].a0, a1 = SL[idx[idx.length - 1]].a1;
+    if (a1 - a0 > 0.3) continue;
+    const name = k === 3 ? 'はずれ' : curSet().tiers[k].name;
+    const W = 512, H = 128, c = makeCanvas(W, H), x = c.getContext('2d');
+    x.font = `86px 'Dela Gothic One', 'Noto Sans JP', sans-serif`;
+    const tw = Math.min(W - 40, x.measureText(name).width);
+    x.textAlign = 'center'; x.textBaseline = 'middle';
+    const col = k === 3 ? HAZURE_COL : TIER_COL[k];
+    x.fillStyle = 'rgba(20,10,0,.75)'; x.beginPath(); x.roundRect(W / 2 - tw / 2 - 18, 10, tw + 36, H - 20, 30); x.fill();
+    x.lineWidth = 6; x.strokeStyle = col; x.stroke();
+    x.lineWidth = 14; x.strokeStyle = 'rgba(20,10,0,.9)'; x.lineJoin = 'round'; x.strokeText(name, W / 2, H / 2 + 4, W - 40);
+    x.fillStyle = '#fff'; x.fillText(name, W / 2, H / 2 + 4, W - 40);
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: canvasTex(c), depthTest: false, transparent: true }));
+    const mid = (a0 + a1) / 2, rr = R + 1.75;
+    sp.position.set(Math.cos(mid) * rr, Math.sin(mid) * rr, 0.6);
+    sp.scale.set(3.2, 0.8, 1);
+    sp.renderOrder = 10;
+    tierLabels.add(sp);
+  }
+  spinner.add(tierLabels);
 }
 
 // 外周リング
@@ -2063,8 +2225,9 @@ async function pseudoSpins(list, mode) {
   for (let k = 0; k < list.length; k++) {
     const lead = list[k];
     // 指すリーダーのマスのどれかに仮停止
-    const idx = lead + n * Math.floor(Math.random() * (total / n));
-    const p0 = phi, p1 = phiFor((idx + rand(0.3, 0.7)) * arc, p0, 1.5), D = p1 - p0;
+    const opts = SL.map((_, i) => i).filter((i) => SL[i].lead === lead);
+    const idx = opts[Math.floor(Math.random() * opts.length)];
+    const p0 = phi, p1 = phiFor(SL[idx].a0 + rand(0.3, 0.7) * sliceW(idx), p0, 1.5), D = p1 - p0;
     await play([
       { dur: 0.3, p0, p1: p0 + D * 0.25, ease: E.in2 },
       { dur: 1.1, p0: p0 + D * 0.25, p1, ease: E.outCubic },
@@ -2074,7 +2237,7 @@ async function pseudoSpins(list, mode) {
     const before = evalOf(lead);
     evalSignal(lead, SIGN_REL, true, true);
     const v = Math.max(50, evalOf(lead) - before);
-    cutin(`+${v}`, 't-lead', { dur: 900, small: true, gloss: 'gold', color: leaderColor(lead), sub: draft.leaders[lead] });
+    cutin(SHOGI ? `+${v}` : `×${k + 2}`, 't-lead', { dur: 900, small: true, gloss: 'gold', color: leaderColor(lead), sub: draft.leaders[lead] });
     await sleep(820);
   }
 }
@@ -2102,35 +2265,37 @@ async function startSpin() {
   sound.init();
 
   const mode = 'light';
-  const { total } = MODES[mode];
+  const total = SL.length;
   const n = draft.leaders.length;
-  const arc = TAU / total;
 
-  // ===== 抽選(本体): リーダー人数から一様に1人 =====
-  // 通常は普通の抽選。?preview(演出確認モード)のときだけ、パネルで選んだ人を勝者にする
-  const winner = PREVIEW ? previewWinner(n) : fairInt(n);
+  // ===== 抽選(本体): ふつうは候補から一様に1つ、ガチャは確率の重みで1つ =====
+  // ?preview(演出確認モード)のときだけ、パネルで選んだものを当たりにする
+  const winner = PREVIEW ? previewWinner(n) : drawWinner(n);
 
   // ===== ここから下は演出だけ。winner は二度と書き換えない =====
   const plan = planFor(winner, n);
   evalReset(n);
   // 止まるマス: 勝者のマスのどれか
-  const landIdx = winner + n * Math.floor(Math.random() * (total / n));
+  const own = SL.map((_, i) => i).filter((i) => SL[i].lead === winner);
+  const landIdx = own[Math.floor(Math.random() * own.length)];
   // リーチ中(PUSH待ち)は、帯が指しているリーダーのマスの中で針を止める(そのまま止まればその人)。
   // そこから勝者のマスまで passK マス進む。0 = そのまま止まる / 1 = 隣へ入る / 2以上 = 通過して入る
-  const reachLead = plan.leads.length ? plan.leads[plan.leads.length - 1] : winner;
-  let passK = mod(winner - reachLead, n);
-  if (passK === 0 && n <= 4 && chance(0.15)) passK = n;   // たまに一周して同じ人へ戻る
+  let reachLead = plan.leads.length ? plan.leads[plan.leads.length - 1] : winner;
+  let passK = passFrom(landIdx, reachLead, 7);
+  // 待つマスが遠すぎる(ガチャで等級ごとに並んでいるときなど)ときは、近くのマスの人で待つ
+  if (passK < 0) { passK = pickW({ 0: 3, 1: 4, 2: 2, 3: 1 }) | 0; reachLead = leaderOf(landIdx - passK); if (plan.leads.length) plan.leads[plan.leads.length - 1] = reachLead; }
+  if (passK === 0 && n <= 4 && chance(0.15)) { const k2 = passFrom(landIdx - 1, reachLead); if (k2 >= 0) passK = k2 + 1; }   // たまに一周して同じ人へ戻る
   plan.donden = plan.donden && passK <= 1;                // 境目フリーズは、境目のどちら側でも決まりうるときだけ
   if (passK === 0) plan.pattern = 'stay';
   else if (passK >= 2) plan.pattern = 'pass';
   plan.passK = passK;
   const landFrac = plan.pattern === 'stay' ? rand(0.84, 0.95) : plan.pattern === 'short' ? rand(0.04, 0.12) : plan.pattern === 'pass' ? rand(0.06, 0.3) : rand(0.25, 0.7);
-  const landAngle = (landIdx + landFrac) * arc;
+  const landAngle = SL[landIdx].a0 + landFrac * sliceW(landIdx);
   // 針が最後に越える境目(止まっているマスの次)
   const entryIdx = mod(landIdx - passK + 1, total);
 
   // 開幕(たっぷりのときだけ): 組の名前と候補の数
-  if (curSet().length === 'long' && !plan.ippatsu) {
+  if (plan.full) {
     flash('#fff6d0', 0.35, 0.35);
     sound.reach(2);
     cutin(draft.pick, 't-gold', { dur: 1500, gloss: 'gold', sub: `${n}択!!` });
@@ -2171,7 +2336,8 @@ async function startSpin() {
 
   if (plan.restart) {
     // いったん適当なマスに止まる(決まった…?) → 一瞬の間 → フリーズ → 宝石が化ける → 再始動
-    const stopAngle = (Math.floor(Math.random() * total) + rand(0.25, 0.75)) * arc;
+    const si = Math.floor(Math.random() * total);
+    const stopAngle = SL[si].a0 + rand(0.25, 0.75) * sliceW(si);
     await spinTo(stopAngle, mode);
     await prelude;
     sound.stopThud();
@@ -2247,8 +2413,7 @@ function updateFuri(dt) {
 let zenOverlay = null;
 function buildZenOverlay(mode, winner) {
   removeZenOverlay();
-  const { total } = MODES[mode];
-  const arc = TAU / total;
+  const total = SL.length;
   const tex = drawWheel(mode, winner);
   const mat = new THREE.MeshStandardMaterial({ map: tex.map, emissiveMap: tex.emissive, emissive: 0xffffff, emissiveIntensity: 0.35, roughness: 0.42, metalness: 0.1, polygonOffset: true, polygonOffsetFactor: -2 });
   const g = new THREE.Group();
@@ -2256,7 +2421,7 @@ function buildZenOverlay(mode, winner) {
   for (let i = 0; i < total; i++) {
     if (leaderOf(i) === winner) continue;
     // CircleGeometry の扇形は盤面テクスチャと同じ角度・UV で切り出せる
-    const m = new THREE.Mesh(new THREE.CircleGeometry(R, segs, i * arc, arc), mat);
+    const m = new THREE.Mesh(new THREE.CircleGeometry(R, Math.max(2, Math.round(segs * sliceW(i) / (TAU / total))), SL[i].a0, sliceW(i)), mat);
     m.position.z = 0.205; m.visible = false; m.userData.i = i;
     g.add(m);
   }
@@ -2284,8 +2449,8 @@ function emitZenkai(dt) {
   }
 }
 // 変わったマスから噴き出す粒
-function sliceBurst(i, arc) {
-  const mid = (i + 0.5) * arc;
+function sliceBurst(i) {
+  const mid = (SL[i].a0 + SL[i].a1) / 2;
   zP.set(Math.cos(mid) * R * 0.7, Math.sin(mid) * R * 0.7, 0.4);
   spinner.localToWorld(zP);
   for (let k = 0; k < 36; k++) {
@@ -2295,9 +2460,8 @@ function sliceBurst(i, arc) {
   }
 }
 async function zenkaiten(mode, landAngle, winner, fromReach = false) {
-  const { total } = MODES[mode];
+  const total = SL.length;
   const winIndex = winner;
-  const arc = TAU / total;
   if (!fromReach) {
     // 1) いつもどおり回り始める
     setHold('none');
@@ -2342,7 +2506,7 @@ async function zenkaiten(mode, landAngle, winner, fromReach = false) {
   const per = Math.ceil(order.length / waves);
   for (let w = 0; w < waves; w++) {
     const group = order.slice(w * per, (w + 1) * per);
-    for (const m of zenOverlay.g.children) if (group.includes(m.userData.i)) { m.visible = true; sliceBurst(m.userData.i, arc); }
+    for (const m of zenOverlay.g.children) if (group.includes(m.userData.i)) { m.visible = true; sliceBurst(m.userData.i); }
     sound.holdChange(Math.min(5, Math.floor(w / 2)));
     flash('#fff', 0.2, 0.35); fx.shake = Math.max(fx.shake, 0.5);
     await sleep(360);
@@ -2368,8 +2532,8 @@ function spinTo(angle, mode) {
 
 // リーチ演出つきの回転(今の位置から回し始める)
 async function runReach(plan, mode, entryIdx, landAngle, prelude, winner) {
-  const { total } = MODES[mode];
-  const arc = TAU / total, n = draft.leaders.length;
+  const total = SL.length, n = draft.leaders.length;
+  const arc = TAU / 12;   // 動きの尺(マスの広さに関係なく、同じ速さ・長さで迫る)
   // 評価値で一人勝ちしている人がいるときは、その人だけでリーチする(寝返りで対抗馬を急に作らない)。
   // 針はその人のマスで止まり、勝者が別ならそこから動き出す
   const P0 = evalSt.P || [];
@@ -2385,11 +2549,13 @@ async function runReach(plan, mode, entryIdx, landAngle, prelude, winner) {
   if (soloLead >= 0) {
     plan.leads = [soloLead];
     plan.solo = true;
-    const passK = mod(winner - soloLead, n);
-    const landIdx = Math.floor(landAngle / arc);
-    if (passK === 0) { plan.pattern = 'stay'; landAngle = (landIdx + rand(0.84, 0.95)) * arc; }
-    else if (passK >= 2) { plan.pattern = 'pass'; landAngle = (landIdx + rand(0.06, 0.3)) * arc; }
-    else if (plan.pattern === 'stay' || plan.pattern === 'pass') { plan.pattern = 'straight'; landAngle = (landIdx + rand(0.25, 0.7)) * arc; }
+    const landIdx = sliceAt(landAngle);
+    let passK = passFrom(landIdx, soloLead, 7);
+    if (passK < 0) { passK = pickW({ 0: 3, 1: 4, 2: 2 }) | 0; soloLead = leaderOf(landIdx - passK); plan.leads = [soloLead]; }
+    const at = (f) => SL[landIdx].a0 + f * sliceW(landIdx);
+    if (passK === 0) { plan.pattern = 'stay'; landAngle = at(rand(0.84, 0.95)); }
+    else if (passK >= 2) { plan.pattern = 'pass'; landAngle = at(rand(0.06, 0.3)); }
+    else if (plan.pattern === 'stay' || plan.pattern === 'pass') { plan.pattern = 'straight'; landAngle = at(rand(0.25, 0.7)); }
     plan.passK = passK;
     plan.donden = plan.donden && passK <= 1;
     entryIdx = mod(landIdx - passK + 1, total);
@@ -2397,11 +2563,13 @@ async function runReach(plan, mode, entryIdx, landAngle, prelude, winner) {
   const winIndex = entryIdx; // 針が最後に越える境目(このマスの入口)
   const phi0 = phi, Ta = 0.7;
   // 境目フリーズはリーチの時点で境目ギリギリまで迫って止める(あとからもう一度近づかない)
-  const holdGap = plan.donden ? rand(0.015, 0.04) : 0.5;
+  // 待つ位置: 境目の手前。ふつうは待つマスの真ん中、境目フリーズは境目ギリギリ
+  const holdW = sliceW(winIndex - 1);
+  const holdGap = plan.donden ? Math.min(rand(0.015, 0.04) * arc, 0.3 * holdW) : 0.5 * holdW;
   const creepDist = 1.3 * arc;
   const Tc = 3.2, Td = 4.3;
-  const phiB = phiFor(winIndex * arc, phi0 + creepDist + holdGap * arc, 5); // 境目が針に来る φ
-  const phiHold = phiB - holdGap * arc;
+  const phiB = phiFor(sliceA0(winIndex), phi0 + creepDist + holdGap, 5); // 境目が針に来る φ
+  const phiHold = phiB - holdGap;
   const phiPre = phiHold - creepDist;
   const Dm = phiPre - phi0;
   const Da = Dm / 5.725, Dd = Dm - Da;
@@ -2470,7 +2638,7 @@ async function runReach(plan, mode, entryIdx, landAngle, prelude, winner) {
   await mainDone;
   await during;
   fx.bulb = 'hold';
-  tremble = Math.min(0.12 * arc, 0.01, holdGap * arc * 0.4);   // 境目ギリギリのときは震えで越えないように
+  tremble = Math.min(0.12 * arc, 0.01, holdGap * 0.4);   // 境目ギリギリのときは震えで越えないように
 
   // リーチ中のフリーズ(確定) / 全回転への移行
   if (plan.reachFreeze || plan.reachZenkai) {
@@ -2496,8 +2664,9 @@ async function runReach(plan, mode, entryIdx, landAngle, prelude, winner) {
   await gemAt(plan, 'push');
 
   // 境目(phiB)から見た止まる位置。stay は境目の手前、pass は越えた先のマス
-  const landFrac = mod(landAngle / arc, 1);
-  const target = phiB + (plan.passK - 1 + landFrac) * arc;
+  const li = winIndex + plan.passK - 1;
+  const landFrac = (mod(landAngle - SL[mod(li, total)].a0, TAU)) / sliceW(li);
+  const target = phiB + (sliceA0(li) - sliceA0(winIndex)) + landFrac * sliceW(li);
 
   if (plan.donden) {
     // 境目フリーズ: 2人の境目ギリギリで止まりかけ → 暗転・無音で震える(どっちだ…!?) → どちらかに決まる
@@ -2506,7 +2675,7 @@ async function runReach(plan, mode, entryIdx, landAngle, prelude, winner) {
     fx.edgeK = 0; fx.edgeT = 1; fx.edgeRate = 1.4;
     await sleep(900);
     fx.bulb = 'off'; fx.dimT = 0.85; fx.ambientRate = 0; vignette(null, false);
-    tremble = 0.012 * arc;   // 無音のまま震える
+    tremble = Math.min(0.012 * arc, holdGap * 0.4);   // 無音のまま震える
     await sleep(2000);
     tremble = 0;
     sound.gata(); flash('#fff', 0.5, 1); fx.shake = 1.3; fx.dimT = 0; fx.bulb = 'reach';
@@ -2521,11 +2690,11 @@ async function runReach(plan, mode, entryIdx, landAngle, prelude, winner) {
     await play([{ dur: 1.1, p0: phiHold, p1: target, ease: E.inOut3 }]);
   } else if (plan.pattern === 'revive') {
     // いったん手前で止まる → 静寂 → ガタッ → 動く
-    const shortP = phiB - rand(0.06, 0.14) * arc;
+    const shortP = phiB - rand(0.06, 0.14) * Math.min(arc, sliceW(winIndex - 1));
     await play([{ dur: 1.0, p0: phiHold, p1: shortP, ease: E.inOut3 }]);
     sound.stopThud();
     fx.bulb = 'off'; fx.dimT = 0.85; fx.reachT = 0.2; vignette(null, false);
-    tremble = 0.02 * arc;
+    tremble = Math.min(0.02 * arc, (phiB - shortP) * 0.4);
     await sleep(1700);
     tremble = 0;
     sound.gata(); flash('#fff', 0.5, 1); fx.shake = 1.4; fx.dimT = 0; fx.bulb = 'reach';
@@ -2555,6 +2724,16 @@ async function finish(winner) {
   vignette(null, false);
   holdVibe = false;
   document.body.classList.remove('reaching');
+  if (draft.tier && draft.tier[winner] === 3) {
+    fx.winT = 0; fx.bulb = 'off'; fx.dimT = 0.5; fx.ambientRate = 0;
+    sound.fail();
+    flash('#8a92a4', 0.5, 0.5);
+    await sleep(500);
+    showResult(winner);
+    isSpinning = false;
+    document.body.classList.remove('spinning');
+    return;
+  }
   fx.winT = 1; fx.bulb = 'win'; fx.dimT = 0; fx.faceGlowT = 2.2; fx.ambientRate = AMB_WIN;
   sound.kyuin();
   setTimeout(() => sound.win(mode), 250);
@@ -2587,12 +2766,20 @@ function showResult(winner) {
   const t = $('result-text');
   t.textContent = '';
   t.className = 'gl draft';
+  const tier = draft.tier ? draft.tier[winner] : -1;
+  t.classList.toggle('miss', tier === 3);
+  if (tier >= 0 && tier < 3) {
+    const k = document.createElement('div'); k.className = 'r-tier';
+    k.appendChild(glossy(curSet().tiers[tier].name, ['rainbow', 'gold', 'red'][tier]));
+    t.appendChild(k);
+  }
   const { emoji, text } = splitEmoji(draft.leaders[winner]);
   if (emoji) { const e = document.createElement('div'); e.className = 'r-emoji'; e.textContent = emoji; t.appendChild(e); }
-  const l = document.createElement('div'); l.className = 'r-leader'; l.appendChild(glossy(text || draft.leaders[winner], 'gold'));
+  const l = document.createElement('div'); l.className = 'r-leader';
+  l.appendChild(glossy(text || draft.leaders[winner], tier === 3 ? 'silver' : 'gold'));
   t.append(l);
-  // いま当たった候補に印(一覧で外しやすいように)
-  curSet().last = draft.leaders[winner]; saveStore(); renderItems();
+  // いま当たった候補に印(一覧で外しやすいように)。はずれは候補ではないので付けない
+  curSet().last = tier === 3 ? '' : draft.leaders[winner]; saveStore(); renderItems();
   res.classList.add('end');
   t.style.animation = 'none'; void t.offsetWidth; t.style.animation = '';
   res.classList.add('show');
@@ -2604,7 +2791,7 @@ function closeResult() {
   evalHide();
   res.classList.remove('show');
   document.body.classList.remove('result-open');
-  fx.winT = 0; fx.bulb = 'idle'; fx.cam = 'base'; fx.faceGlowT = 1; fx.ambientRate = AMB_IDLE;
+  fx.winT = 0; fx.bulb = 'idle'; fx.cam = 'base'; fx.faceGlowT = 1; fx.ambientRate = AMB_IDLE; fx.dimT = 0;
   removeZenOverlay();
   setHold('none');
   // 当たったら外す: 結果を閉じたときに外す(結果の後ろで盤が変わらないように)
@@ -2632,6 +2819,7 @@ function setMode(mode, initial = false) {
   emblemMat.color.set(draftImg ? 0x555555 : 0xffffff); emblemMat.emissiveIntensity = draftImg ? 0.7 : 0.12;
   emblemMat.needsUpdate = true;
   buildPins('light');
+  buildTierLabels();
   rim.material = rim2.material = hubBody.material = hubRing.material = goldMat;
   back.material = goldDark;
   ambient.intensity = 0.2; keyLight.intensity = 0.85; keyLight.color.set(0xfff2d8);
@@ -2763,8 +2951,7 @@ function frame(now) {
   angVel = Math.abs(disp - prevDisp) / Math.max(dt, 1e-4); prevDisp = disp;
 
   // 針とチック音
-  const { total } = MODES[currentMode];
-  const sec = Math.floor(mod(Math.PI / 2 + disp, TAU) / (TAU / total));
+  const sec = sliceAt(Math.PI / 2 + disp);
   if (sec !== lastSector) {
     if (lastSector !== -1 && isSpinning) {
       flick = Math.min(0.45, flick + 0.28);
@@ -3030,7 +3217,8 @@ if (IS_DEV) {
 }
 /* ---------------------------------------------------------------------
  *  候補の一覧・組の切り替え・⚙ この組
- *  候補は行のチェックで盤に乗せる/外す。外した候補は灰色で残り、当たった順が付く
+ *  候補は行のチェックで盤に乗せる/外す。外した候補は灰色で残り、当たった順が付く。
+ *  ガチャでは、一覧を等級の見出しで区切る(等級の名前と確率は見出しで直す)。行はつまみで並べ替え・等級の移動
  * ------------------------------------------------------------------- */
 let wheelTimer = null;
 // 盤を描き直す(続けて変えたときは最後の1回だけ)
@@ -3039,7 +3227,7 @@ function refreshWheel(now = false) {
   const go = async () => {
     if (isSpinning || $('result').classList.contains('show')) return;
     syncDraft();
-    await document.fonts.load(`100px 'Dela Gothic One'`, draft.leaders.join('') + draft.pick).catch(() => {});
+    await document.fonts.load(`100px 'Dela Gothic One'`, draft.leaders.join('') + draft.pick + curSet().tiers.map((x) => x.name).join('')).catch(() => {});
     glossCache.clear();
     setMode('light', true);
     warmGlossy();
@@ -3048,24 +3236,58 @@ function refreshWheel(now = false) {
 }
 function commit(wheel = true) { saveStore(); renderItems(); if (wheel) refreshWheel(); }
 
+const el = (tag, cls, props = {}) => Object.assign(document.createElement(tag), cls ? { className: cls } : {}, props);
+function itemRow(set, name) {
+  const off = name in set.off, cur = set.last === name;
+  const li = el('li', `it${off ? ' off' : ''}${cur ? ' cur' : ''}`);
+  li.dataset.name = name;
+  const grip = el('span', 'grip', { textContent: '⋮⋮', title: 'ドラッグで並べ替え' });
+  const ck = el('input', 'ck', { type: 'checkbox', checked: !off }); ck.setAttribute('aria-label', `${name}を盤に乗せる`);
+  const nm = el('input', 'nm', { type: 'text', value: name, maxLength: 40 }); nm.setAttribute('aria-label', '候補の名前');
+  li.append(grip, ck, nm);
+  if (cur || (off && set.off[name] > 0)) li.appendChild(el('span', 'tag', { textContent: off && set.off[name] > 0 ? `${set.off[name]}回目` : 'いま' }));
+  const del = el('button', 'del', { textContent: '✕', title: '削除' }); del.setAttribute('aria-label', `${name}を削除`);
+  li.appendChild(del);
+  return li;
+}
+function pctBox(set, k) {
+  if (k === remKey(set)) return el('span', 'rem', { textContent: `残り ${+tierPct(set, k).toFixed(2)}%` });
+  const w = el('span', 'pctw');
+  const inp = el('input', 'tp', { type: 'text', inputMode: 'decimal', value: String(set.tiers[k].pct) }); inp.setAttribute('aria-label', '確率(%)');
+  w.append(inp, '%');
+  return w;
+}
 function renderItems() {
   const set = curSet(), ul = $('items');
-  const keep = document.activeElement && ul.contains(document.activeElement) ? document.activeElement.closest('.it')?.dataset.name : null;
+  const f = document.activeElement && ul.contains(document.activeElement) ? document.activeElement : null;
+  const keep = f && f.closest('.it') ? { name: f.closest('.it').dataset.name } : f && f.dataset.tier !== undefined ? { tier: f.dataset.tier, cls: f.className } : null;
   ul.textContent = '';
-  for (const name of set.items) {
-    const off = name in set.off, cur = set.last === name;
-    const li = document.createElement('li');
-    li.className = `it${off ? ' off' : ''}${cur ? ' cur' : ''}`;
-    li.dataset.name = name;
-    const ck = document.createElement('input'); ck.type = 'checkbox'; ck.className = 'ck'; ck.checked = !off; ck.setAttribute('aria-label', `${name}を盤に乗せる`);
-    const nm = document.createElement('input'); nm.type = 'text'; nm.className = 'nm'; nm.value = name; nm.maxLength = 40; nm.setAttribute('aria-label', '候補の名前');
-    li.append(ck, nm);
-    if (cur || (off && set.off[name] > 0)) { const tg = document.createElement('span'); tg.className = 'tag'; tg.textContent = off && set.off[name] > 0 ? `${set.off[name]}回目` : 'いま'; li.appendChild(tg); }
-    const del = document.createElement('button'); del.className = 'del'; del.textContent = '✕'; del.title = '削除'; del.setAttribute('aria-label', `${name}を削除`);
-    li.appendChild(del);
-    ul.appendChild(li);
+  const gacha = set.mode === 'gacha';
+  document.body.classList.toggle('gacha', gacha);
+  if (!gacha) for (const name of set.items) ul.appendChild(itemRow(set, name));
+  else {
+    for (const k of [0, 1, 2]) {
+      const th = el('li', 'th'); th.dataset.tier = k;
+      const tn = el('input', 'tn', { type: 'text', value: set.tiers[k].name, maxLength: 12 }); tn.dataset.tier = k; tn.setAttribute('aria-label', '等級の名前');
+      th.append(el('i', 'dot'), tn, pctBox(set, k));
+      th.querySelector('.tp')?.setAttribute('data-tier', k);
+      th.style.setProperty('--tc', TIER_COL[k]);
+      ul.appendChild(th);
+      for (const name of set.items) if (set.tierOf[name] === k) ul.appendChild(itemRow(set, name));
+      const add = el('textarea', 'add-t', { rows: 1, placeholder: '＋ 追加' }); add.dataset.tier = k; add.setAttribute('aria-label', `${set.tiers[k].name}に候補を追加`);
+      const li = el('li', 'ta'); li.appendChild(add); ul.appendChild(li);
+    }
+    const hz = el('li', `th hz${set.hazure.on ? ' on' : ''}`); hz.dataset.tier = 'h';
+    const sw = el('input', 'sw', { type: 'checkbox', checked: set.hazure.on }); sw.id = 'hz-sw';
+    const lab = el('label', 'hzl'); lab.htmlFor = 'hz-sw'; lab.textContent = 'はずれ';
+    hz.append(el('i', 'dot'), lab);
+    if (set.hazure.on) hz.appendChild(pctBox(set, 'h'));
+    hz.append(el('span', 'sp'), sw);
+    hz.style.setProperty('--tc', HAZURE_COL);
+    ul.appendChild(hz);
   }
-  if (keep) ul.querySelector(`.it[data-name="${CSS.escape(keep)}"] .nm`)?.focus();
+  if (keep?.name) ul.querySelector(`.it[data-name="${CSS.escape(keep.name)}"] .nm`)?.focus();
+  else if (keep?.tier !== undefined) ul.querySelector(`[data-tier="${keep.tier}"].${keep.cls.split(' ')[0]}`)?.focus();
   $('auto-off').checked = set.autoOff;
 }
 function setOff(name, off) {
@@ -3081,11 +3303,11 @@ function offLast() {
   if ($('result').classList.contains('show')) closeResult();
   if (!(set.last in set.off)) setOff(set.last, true);
 }
-function addItems(text) {
+function addItems(text, tier = 2) {
   const set = curSet();
   const names = text.split(/\r?\n/).map((v) => v.trim()).filter(Boolean);
   let added = 0;
-  for (const n of names) if (!set.items.includes(n)) { set.items.push(n.slice(0, 40)); added++; }
+  for (const n of names) if (!set.items.includes(n)) { const nm = n.slice(0, 40); set.items.push(nm); set.tierOf[nm] = tier; added++; }
   if (added) commit();
 }
 function renameItem(oldName, v) {
@@ -3096,24 +3318,86 @@ function renameItem(oldName, v) {
   if (name === oldName || set.items.includes(name)) { renderItems(); return; }
   set.items[i] = name;
   if (oldName in set.off) { set.off[name] = set.off[oldName]; delete set.off[oldName]; }
+  set.tierOf[name] = set.tierOf[oldName]; delete set.tierOf[oldName];
   if (set.last === oldName) set.last = name;
   commit();
 }
 function removeItem(name) {
   const set = curSet();
   set.items = set.items.filter((n) => n !== name);
-  delete set.off[name];
+  delete set.off[name]; delete set.tierOf[name];
   if (set.last === name) set.last = '';
   commit();
 }
-$('items').addEventListener('change', (e) => {
-  const li = e.target.closest('.it'); if (!li) return;
-  if (e.target.classList.contains('ck')) setOff(li.dataset.name, !e.target.checked);
-  else if (e.target.classList.contains('nm')) renameItem(li.dataset.name, e.target.value);
+// 確率: 残りが0未満にならない範囲で受け付ける
+function setPct(k, v) {
+  const set = curSet();
+  const others = [0, 1, 2].filter((i) => i !== k && i !== remKey(set)).reduce((s, i) => s + set.tiers[i].pct, 0);
+  set.tiers[k].pct = Math.min(clampPct(String(v).replace(/[％%\s]/g, '')), Math.max(0, 100 - others));
+  commit();
+}
+const ul0 = $('items');
+ul0.addEventListener('change', (e) => {
+  const x = e.target, li = x.closest('.it');
+  if (li && x.classList.contains('ck')) setOff(li.dataset.name, !x.checked);
+  else if (li && x.classList.contains('nm')) renameItem(li.dataset.name, x.value);
+  else if (x.classList.contains('tn')) { const v = x.value.trim().slice(0, 12); if (v) curSet().tiers[+x.dataset.tier].name = v; commit(); }
+  else if (x.classList.contains('tp')) setPct(+x.dataset.tier, x.value);
+  else if (x.id === 'hz-sw') { curSet().hazure.on = x.checked; commit(); }
 });
-$('items').addEventListener('keydown', (e) => { if (e.target.classList.contains('nm') && e.key === 'Enter' && !e.isComposing) { e.preventDefault(); e.target.blur(); } });
-$('items').addEventListener('click', (e) => { const b = e.target.closest('.del'); if (b) removeItem(b.closest('.it').dataset.name); });
-// 追加の欄: Enter で足す。複数行を貼ったら1行ずつ候補に
+ul0.addEventListener('keydown', (e) => {
+  const x = e.target;
+  if (e.key !== 'Enter' || e.isComposing) return;
+  if (x.classList.contains('nm') || x.classList.contains('tn') || x.classList.contains('tp')) { e.preventDefault(); x.blur(); }
+  else if (x.classList.contains('add-t') && !e.shiftKey) { e.preventDefault(); const k = +x.dataset.tier; const v = x.value; x.value = ''; addItems(v, k); ul0.querySelector(`.add-t[data-tier="${k}"]`)?.focus(); }
+});
+ul0.addEventListener('input', (e) => { const x = e.target; if (x.classList.contains('add-t') && x.value.includes('\n')) { const k = +x.dataset.tier; const v = x.value; x.value = ''; addItems(v, k); ul0.querySelector(`.add-t[data-tier="${k}"]`)?.focus(); } });
+ul0.addEventListener('focusout', (e) => { const x = e.target; if (x.classList.contains('add-t') && x.value.trim()) { const v = x.value; x.value = ''; addItems(v, +x.dataset.tier); } });
+ul0.addEventListener('click', (e) => { const b = e.target.closest('.del'); if (b) removeItem(b.closest('.it').dataset.name); });
+
+// つまみで並べ替え(ガチャでは見出しをまたぐと等級が変わる)。マウスでも指でも
+ul0.addEventListener('pointerdown', (e) => {
+  const g = e.target.closest('.grip'); if (!g) return;
+  e.preventDefault();
+  const li = g.closest('.it'), name = li.dataset.name;
+  const ghost = li.cloneNode(true); ghost.classList.add('ghost');
+  const r0 = li.getBoundingClientRect();
+  Object.assign(ghost.style, { width: `${r0.width}px`, left: `${r0.left}px`, top: `${r0.top}px` });
+  document.body.appendChild(ghost);
+  li.classList.add('dragging');
+  const dy = e.clientY - r0.top;
+  g.setPointerCapture(e.pointerId);
+  const move = (ev) => {
+    ghost.style.top = `${ev.clientY - dy}px`;
+    // 指している行の上半分より上なら、その行の前へ。等級の見出しの前なら、ひとつ上の等級の最後(追加の欄の前)へ
+    const rows = [...ul0.children].filter((x) => x !== li && !x.classList.contains('hz'));
+    const target = rows.find((x) => { const r = x.getBoundingClientRect(); return ev.clientY < r.top + r.height / 2; });
+    let anchor = target || null;
+    if (target && target.classList.contains('th')) {
+      if (target === ul0.firstElementChild) anchor = target.nextElementSibling;
+      else { let pv = target.previousElementSibling; if (pv === li) pv = pv.previousElementSibling; anchor = pv && pv.classList.contains('ta') ? pv : target; }
+    } else if (!target) { const tas = ul0.querySelectorAll('.ta'); anchor = tas.length ? tas[tas.length - 1] : null; }
+    if (anchor !== li) ul0.insertBefore(li, anchor);
+    const rr = ul0.getBoundingClientRect();
+    if (ev.clientY < rr.top + 24) ul0.scrollTop -= 8; else if (ev.clientY > rr.bottom - 24) ul0.scrollTop += 8;
+  };
+  const up = () => {
+    g.removeEventListener('pointermove', move); g.removeEventListener('pointerup', up); g.removeEventListener('pointercancel', up);
+    ghost.remove(); li.classList.remove('dragging');
+    const set = curSet();
+    let tier = 0;
+    const order = [];
+    for (const x of ul0.children) {
+      if (x.classList.contains('th') && x.dataset.tier !== 'h') tier = +x.dataset.tier;
+      if (x.classList.contains('it')) { order.push(x.dataset.name); if (set.mode === 'gacha') set.tierOf[x.dataset.name] = tier; }
+    }
+    set.items = order;
+    commit();
+  };
+  g.addEventListener('pointermove', move); g.addEventListener('pointerup', up); g.addEventListener('pointercancel', up);
+});
+
+// 追加の欄(ふつう): Enter で足す。複数行を貼ったら1行ずつ候補に
 const add = $('add');
 add.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); addItems(add.value); add.value = ''; } });
 add.addEventListener('input', () => { if (add.value.includes('\n')) { addItems(add.value); add.value = ''; } });
@@ -3128,12 +3412,12 @@ document.querySelectorAll('.ptabs button').forEach((b) => b.addEventListener('cl
   $('p-set').hidden = b.dataset.p !== 'set';
 }));
 
-/* ---------- 組: 切り替え・新しく・名前・演出・複製・削除 ---------- */
+/* ---------- 組: 切り替え・新しく・名前・モード・複製・削除 ---------- */
 function renderSetBtn() { $('set-btn').textContent = `${curSet().name} ▾`; }
 function renderSetPanel() {
   const set = curSet();
   $('set-name').value = set.name;
-  $('len-seg').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === set.length)));
+  $('mode-seg').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === set.mode)));
   $('set-del').disabled = store.sets.length < 2;
   disarmDel();
 }
@@ -3171,7 +3455,7 @@ document.querySelectorAll('[data-new]').forEach((b) => b.addEventListener('click
 }));
 $('set-name').addEventListener('change', (e) => { const v = e.target.value.trim().slice(0, 30); if (!v) { e.target.value = curSet().name; return; } curSet().name = v; saveStore(); renderSetBtn(); refreshWheel(); });
 $('set-name').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.isComposing) e.target.blur(); });
-$('len-seg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; curSet().length = b.dataset.v; saveStore(); renderSetPanel(); });
+$('mode-seg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b || curSet().mode === b.dataset.v) return; curSet().mode = b.dataset.v; renderSetPanel(); commit(); });
 $('set-dup').addEventListener('click', () => {
   const x = normSet(JSON.parse(JSON.stringify(curSet())));
   x.id = newId(); x.name = `${x.name} のコピー`.slice(0, 30);
