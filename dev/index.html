@@ -677,7 +677,6 @@
   <aside id="panel">
     <section class="pset">
       <div class="kv"><span>名前</span><span class="inrow"><input id="set-name" type="text" maxlength="30" aria-label="組の名前"><button class="ok" id="set-name-ok" hidden>決定</button></span></div>
-      <div class="kv"><span>テーマ</span><div class="seg" id="theme-seg"><button data-v="treasure">宝</button><button data-v="shogi">将棋</button></div></div>
     </section>
     <section class="pitems">
       <div class="phead"><b>候補</b><span class="sp"></span><label class="swl">当たったら外す <input type="checkbox" id="auto-off" class="sw"></label></div>
@@ -737,7 +736,7 @@ function normSet(x) {
   x.autoOff = !!x.autoOff; x.hidden = !!x.hidden; x.last = x.items.includes(x.last) ? x.last : '';
   // ガチャ: 等級は3つ(上から)。確率は等級ごと。いちばん下の残りは自動(はずれをオンにしたら、はずれが残り)
   x.mode = 'normal';   // ガチャのモードはやめた(演出と合わないことがあるため)
-  x.theme = THEME_KEYS.includes(x.theme) ? x.theme : 'treasure';
+  delete x.theme;
   const dt = defaultTiers();
   x.tiers = dt.map((d, i) => { const t = (Array.isArray(x.tiers) && x.tiers[i]) || {}; return { name: String(t.name || d.name).slice(0, 12), pct: clampPct(t.pct ?? d.pct) }; });
   x.hazure = { on: !!(x.hazure && x.hazure.on) };
@@ -746,7 +745,11 @@ function normSet(x) {
   for (const n of x.items) x.tierOf[n] = [0, 1, 2].includes(to[n]) ? to[n] : 2;
   return x;
 }
-const THEME_KEYS = ['treasure', 'shogi'];
+// 隠し仕様(README に書く): 組の名前に将棋の言葉があれば将棋のテーマ、闇の言葉があれば闇。両方なら将棋の闇
+const SHOGI_WORDS = /将棋|棋|駒|王手|詰み|詰め|竜王|龍王|名人|対局|振り飛車|居飛車|穴熊|矢倉|千日手|投了/;
+const DARK_WORDS = /闇|絶望|罰|地獄|呪|悪夢|奈落|終焉|破滅|冥/;
+const themeOf = (set) => (SHOGI_WORDS.test(set.name) ? 'shogi' : 'treasure');
+const darkOf = (set) => DARK_WORDS.test(set.name);
 const defaultTiers = () => [{ name: '超大当たり', pct: 1 }, { name: '大当たり', pct: 5 }, { name: '当たり', pct: 30 }];
 const clampPct = (v) => { v = Math.round(Number(v) * 100) / 100; return Number.isFinite(v) ? Math.min(100, Math.max(0, v)) : 0; };
 // 残りの等級(はずれがオンならはずれ、オフなら当たり)の確率 = 100 − ほかの合計
@@ -826,6 +829,7 @@ function syncDraft() {
 // ガチャは候補1つに1マスで、広さが確率(盤の見た目と確率を一致させる)
 const slicesPer = (n) => (n >= 10 ? 1 : Math.max(2, Math.round(12 / n)));
 const MODES = { light: { total: 12, winIndex: 0 } };
+MODES.dark = MODES.light;   // 闇も盤の作りは同じ(見た目だけ違う)
 let SL = [];   // マス: { lead, a0, a1 }(a は 0〜TAU、反時計回り)
 function applyDraftLayout() {
   const n = draft.leaders.length;
@@ -1956,11 +1960,11 @@ function redrawKanji() {
 }
 // 組のテーマにする。駒の入れ物(駒群・振り駒・役物)の中身を、駒か模型に入れ替える
 async function applyTheme() {
-  THEME = curSet().theme; SHOGI = THEME === 'shogi';
+  THEME = themeOf(curSet()); SHOGI = THEME === 'shogi';
   document.body.classList.toggle('shogi', SHOGI);
   const th = THEMES[THEME];
   const [piece, big, fish] = THEME === 'treasure' ? await Promise.all([loadAsset('coin'), loadAsset('chest'), loadAsset('fish')]) : [null, null, null];
-  if (THEME !== curSet().theme) return;   // 読み込み中に別のテーマへ替わった
+  if (THEME !== themeOf(curSet())) return;   // 読み込み中に別のテーマへ替わった
   const put = (g, model) => {
     const old = g.children.find((o) => o.userData.model); if (old) g.remove(old);
     const [body, ...faces] = g.children;
@@ -2443,7 +2447,7 @@ async function startSpin() {
   document.body.classList.add('spinning');
   sound.init();
 
-  const mode = 'light';
+  const mode = currentMode;
   const total = SL.length;
   const n = draft.leaders.length;
 
@@ -3107,7 +3111,7 @@ function setTier(key) {
 async function finish(winner) {
   fx.edgeK = 0; fx.edgeT = undefined;
   evalWin(winner);
-  const mode = 'light';
+  const mode = currentMode;
   phi = mod(phi, TAU);
   lastSector = -1;
   fx.reachT = 0; fx.cam = 'win';
@@ -3198,7 +3202,11 @@ function closeResult() {
 let wheelTex = null;
 function setMode(mode, initial = false) {
   if (isSpinning || $('result').classList.contains('show')) return;
-  currentMode = 'light';
+  const was = currentMode;
+  currentMode = darkOf(curSet()) ? 'dark' : 'light';
+  const light = currentMode === 'light';
+  document.body.classList.toggle('mode-light', light);
+  document.body.classList.toggle('mode-dark', !light);
   applyDraftLayout();
   if (wheelTex) { wheelTex.map.dispose(); wheelTex.emissive.dispose(); }
   wheelTex = drawWheel('light');
@@ -3210,14 +3218,16 @@ function setMode(mode, initial = false) {
   emblemMat.metalness = draftImg ? 0 : 0.3; emblemMat.roughness = draftImg ? 0.9 : 0.35;
   emblemMat.color.set(draftImg ? 0x555555 : 0xffffff); emblemMat.emissiveIntensity = draftImg ? 0.7 : 0.12;
   emblemMat.needsUpdate = true;
-  buildPins('light');
+  buildPins(currentMode);
   buildTierLabels();
-  rim.material = rim2.material = hubBody.material = hubRing.material = goldMat;
-  back.material = goldDark;
-  ambient.intensity = 0.2; keyLight.intensity = 0.85; keyLight.color.set(0xfff2d8);
+  rim.material = rim2.material = hubBody.material = hubRing.material = light ? goldMat : purpleMetal;
+  back.material = light ? goldDark : blackMetal;
+  ambient.intensity = 0.2; keyLight.intensity = light ? 0.85 : 1.1; keyLight.color.set(light ? 0xfff2d8 : 0xd8c0ff);
+  // 闇に入った/抜けたときは、名前を変えた瞬間に分かるように光らせる
+  if (initial && was && was !== currentMode) { flash(light ? '#fff4c0' : '#2a0050', 0.6, 0.8); fx.shake = 0.4; }
   phi = 0; lastSector = -1;
   renderMatchup();
-  if (!initial) { flash('#fff4c0', 0.6, 0.8); fx.shake = 0.3; }
+  if (!initial) { flash(light ? '#fff4c0' : '#2a0050', 0.6, 0.8); fx.shake = 0.3; }
 }
 function renderMatchup() {
   return;
@@ -3824,7 +3834,6 @@ function renderSetBtn() { $('set-btn').textContent = `${curSet().name} ▾`; }
 function renderSetPanel() {
   const set = curSet();
   $('set-name').value = set.name;
-  $('theme-seg').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === set.theme)));
   $('set-del').disabled = store.sets.length < 2;
   $('set-del').setAttribute('aria-disabled', String(store.sets.length < 2));
   disarmDel();
@@ -3889,11 +3898,10 @@ document.querySelectorAll('[data-new]').forEach((b) => b.addEventListener('click
   store.sets.push(x); switchSet(x.id);
   if (b.dataset.new === 'empty') setTimeout(() => $('add').focus(), 50);
 }));
-$('set-name').addEventListener('change', (e) => { const v = e.target.value.trim().slice(0, 30); if (!v) { e.target.value = curSet().name; return; } curSet().name = v; saveStore(); renderSetBtn(); refreshWheel(); });
+$('set-name').addEventListener('change', (e) => { const v = e.target.value.trim().slice(0, 30); if (!v) { e.target.value = curSet().name; return; } curSet().name = v; saveStore(); renderSetBtn(); applyTheme(); refreshWheel(); });
 $('set-name').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.isComposing) e.target.blur(); });
 $('set-name').addEventListener('input', () => { $('set-name-ok').hidden = false; });
 $('set-name').addEventListener('blur', () => { $('set-name-ok').hidden = true; });
-$('theme-seg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b || curSet().theme === b.dataset.v) return; curSet().theme = b.dataset.v; saveStore(); renderSetPanel(); applyTheme(); });
 $('set-dup').addEventListener('click', () => {
   const x = normSet(JSON.parse(JSON.stringify(curSet())));
   x.id = newId(); x.name = `${x.name} のコピー`.slice(0, 30);
