@@ -541,8 +541,8 @@
   .phead b { font-size: 14px; color: #fff3d6; }
   .inrow { display: flex; gap: 6px; min-width: 0; }
   .inrow input { flex: 1; min-width: 0; }
-  .ok { padding: 3px 10px; border-radius: 6px; border: 1px solid #ffd27a; background: #d98a00; color: #fff !important; font-size: 12px; white-space: nowrap; flex: none; }
-  .pbtn.go { background: #d98a00; border-color: #ffd27a; color: #fff !important; padding: 6px 14px; }
+  .ok { padding: 3px 10px; border-radius: 6px; border: 1px solid #ffd27a; background: #b45309; color: #fff !important; font-size: 12px; white-space: nowrap; flex: none; }
+  .pbtn.go { background: #b45309; border-color: #ffd27a; color: #fff !important; padding: 6px 14px; }
   .addw #add { min-height: 0; }
   .ptabs-unused { flex: 1; padding: 10px 0; border: 0; border-bottom: 3px solid transparent; background: none; color: #c9b089 !important; }
   .ptabs-unused[aria-selected="true"] { border-color: #ffd27a; color: #fff3d6 !important; }
@@ -557,7 +557,10 @@
   #items { overflow: visible; list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; scrollbar-width: thin; scrollbar-color: #6b5230 transparent; }
   .it { display: flex; align-items: center; gap: 8px; padding: 4px 6px 4px 8px; border-radius: 8px; border: 1px solid rgba(217,119,6,.3); background: rgba(255,255,255,.03); }
   .it.cur { border: 2px solid #ffd27a; padding: 3px 5px 3px 7px; background: rgba(255,210,122,.1); }
-  .it.off { opacity: .45; }
+  /* 外した候補: 薄くはするが読める明るさに(取り消し線と点線の枠で見分ける) */
+  .it.off { border-style: dashed; background: none; }
+  .it.off .nm { color: #a8977c; text-decoration: line-through; }
+  .it.off .ck { opacity: .7; }
   .it .ck { width: 18px; height: 18px; margin: 0; accent-color: #d98a00; flex: none; cursor: pointer; }
   .it .nm { flex: 1; min-width: 0; padding: 4px 4px; border: 1px solid transparent; border-radius: 5px; background: none; color: inherit; font: inherit; font-weight: 700; }
   .it .nm:hover { border-color: rgba(217,119,6,.35); } .it .nm:focus { outline: none; border-color: #ffd27a; background: rgba(0,0,0,.25); }
@@ -596,8 +599,8 @@
   .seg { display: inline-flex; border: 1px solid rgba(217,119,6,.6); border-radius: 8px; overflow: hidden; justify-self: start; }
   .seg button { padding: 5px 12px; border: 0; border-right: 1px solid rgba(217,119,6,.6); background: none; }
   .seg button:last-child { border-right: 0; }
-  .seg button[aria-pressed="true"] { background: #d98a00; color: #fff !important; }
-  .ver { margin-top: auto; font-weight: 400; color: #8a7458; font-size: 11px; }
+  .seg button[aria-pressed="true"] { background: #b45309; color: #fff !important; }
+  .ver { margin-top: auto; font-weight: 400; color: #a8916f; font-size: 11px; }
   #spinbar { display: none; }
   #showui { display: none; position: fixed; top: 10px; right: 10px; z-index: 30; padding: 5px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,.3); background: rgba(0,0,0,.4); color: #fff; font: 700 12px 'Noto Sans JP', sans-serif; opacity: 0; transition: opacity .3s; cursor: pointer; }
   body.ui-hidden #showui { display: block; } body.ui-hidden:hover #showui { opacity: .7; }
@@ -617,7 +620,7 @@
     #topbar .brand, #btn-full, #btn-hide { display: none; }
     #btn-spin { display: none; }
     #spinbar { grid-area: spin; display: block; padding: 10px 14px calc(12px + env(safe-area-inset-bottom, 0px)); background: rgba(20,13,6,.97); border-top: 2px solid #d9a420; }
-    #btn-spin2 { width: 100%; padding: 12px 0; border-radius: 99px; border: 2px solid rgba(255,255,255,.8); font: 400 22px var(--heavy) !important; letter-spacing: .12em; color: #fff !important; background: linear-gradient(180deg, var(--accent), var(--accent2)); box-shadow: 0 0 18px var(--accent); }
+    #btn-spin2 { width: 100%; padding: 12px 0; border-radius: 99px; border: 2px solid rgba(255,255,255,.8); font: 400 22px var(--heavy) !important; letter-spacing: .12em; color: #fff !important; background: linear-gradient(180deg, #d9620b, #a8400a); box-shadow: 0 0 18px var(--accent); text-shadow: 0 2px 0 rgba(0,0,0,.35); }
   }
   #loading { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; color: #fff; font: 700 16px sans-serif; z-index: 100; background: #000; }
   #loading.err { color: #fca5a5; padding: 24px; text-align: center; line-height: 1.7; }
@@ -655,7 +658,7 @@
       <div id="set-pop" class="pop" hidden>
         <ul id="set-list"></ul>
         <div class="pop-sec">＋ 新しい組</div>
-        <div class="pop-row"><button data-new="empty">空</button><button data-new="dinner">夕ごはん</button><button data-new="order">順番決め</button><button data-new="gacha">ガチャ</button><button id="set-dup">この組を複製</button></div>
+        <div class="pop-row"><button data-new="empty">空</button><button data-new="dinner">夕ごはん</button><button data-new="order">順番決め</button><button id="set-dup">この組を複製</button></div>
       </div>
     </div>
     <span class="sp"></span>
@@ -668,7 +671,6 @@
     <section class="pset">
       <div class="kv"><span>名前</span><span class="inrow"><input id="set-name" type="text" maxlength="30" aria-label="組の名前"><button class="ok" id="set-name-ok" hidden>決定</button></span></div>
       <div class="kv"><span>テーマ</span><div class="seg" id="theme-seg"><button data-v="treasure">宝</button><button data-v="shogi">将棋</button></div></div>
-      <div class="kv"><span>モード</span><div class="seg" id="mode-seg"><button data-v="normal">ふつう</button><button data-v="gacha">ガチャ</button></div></div>
     </section>
     <section class="pitems">
       <div class="phead"><b>候補</b><span class="sp"></span><label class="swl">当たったら外す <input type="checkbox" id="auto-off" class="sw"></label></div>
@@ -715,7 +717,6 @@ const STORE_KEY = 'rouletteDX';
 const TEMPLATES = {
   dinner: () => ({ name: '今日の夕ごはん', items: ['カレー', 'ラーメン', '牛丼', 'ハンバーガー', 'ピザ', '寿司', '唐揚げ', 'コンビニ'] }),
   order: () => ({ name: '順番決め', items: ['Aさん', 'Bさん', 'Cさん', 'Dさん'], autoOff: true }),
-  gacha: () => ({ name: 'ガチャ', items: ['特賞', 'A賞', 'B賞', 'C賞'], mode: 'gacha', tierOf: { 特賞: 0, A賞: 1, B賞: 2, C賞: 2 } }),
   empty: () => ({ name: '新しい組', items: [] }),
 };
 const newId = () => Math.random().toString(36).slice(2, 10);
@@ -728,7 +729,7 @@ function normSet(x) {
   delete x.length;
   x.autoOff = !!x.autoOff; x.hidden = !!x.hidden; x.last = x.items.includes(x.last) ? x.last : '';
   // ガチャ: 等級は3つ(上から)。確率は等級ごと。いちばん下の残りは自動(はずれをオンにしたら、はずれが残り)
-  x.mode = x.mode === 'gacha' ? 'gacha' : 'normal';
+  x.mode = 'normal';   // ガチャのモードはやめた(演出と合わないことがあるため)
   x.theme = THEME_KEYS.includes(x.theme) ? x.theme : 'treasure';
   const dt = defaultTiers();
   x.tiers = dt.map((d, i) => { const t = (Array.isArray(x.tiers) && x.tiers[i]) || {}; return { name: String(t.name || d.name).slice(0, 12), pct: clampPct(t.pct ?? d.pct) }; });
@@ -1346,7 +1347,7 @@ function glossy(text, scheme) {
 // 使う文字は決まっているので、起動後に少しずつ先に作っておく
 function warmGlossy() {
   const jobs = [['抽選リーチ', 'red'], ['抽選リーチ', 'gold'], ['抽選リーチ', 'rainbow'],
-    ['激熱', 'red'], ['全回転', 'rainbow'], ['再抽選!!', 'rainbow'], ...draft.leaders.map((n) => [splitEmoji(n).text || n, 'gold']),
+    ['激熱', 'red'], ['に決定!!', 'red'], ['全回転', 'rainbow'], ['再抽選!!', 'rainbow'], ...draft.leaders.map((n) => [splitEmoji(n).text || n, 'gold']),
     ['ボタンを押せ!!', 'red'], ['ボタンを押せ!!', 'gold'], ['ボタンを押せ!!', 'rainbow'], ['ボタンを連打!!', 'gold'], ['ボタンを連打!!', 'rainbow']];
   // 最初のカットインだけ 0.1 秒ほど止まる(描画の初回準備)ので、見えないカットインを先に1回出しておく
   const next = () => { const j = jobs.shift(); if (!j) { cutin('抽選リーチ', 't-gold', { dur: 900, gloss: 'gold', ghost: true }); return; } getGlossy(...j); setTimeout(next, 60); };
@@ -1901,6 +1902,33 @@ function paintFish(heat) {
   });
 }
 
+// 宝箱の中から出る光(宝箱の模型の中に置く。口の高さは 0.48)
+function glowTex(kind) {
+  const c = makeCanvas(kind === 'beam' ? 64 : 128, 128), x = c.getContext('2d');
+  if (kind === 'beam') {
+    // 縦の帯: 下(口)ほど明るく、上へ消える
+    const g = x.createLinearGradient(0, 128, 0, 0);
+    g.addColorStop(0, 'rgba(255,240,190,1)'); g.addColorStop(0.35, 'rgba(255,214,120,.55)'); g.addColorStop(1, 'rgba(255,200,90,0)');
+    x.fillStyle = g; x.fillRect(0, 0, 64, 128);
+  } else {
+    const g = x.createRadialGradient(64, 64, 0, 64, 64, 64);
+    g.addColorStop(0, 'rgba(255,250,225,1)'); g.addColorStop(0.3, 'rgba(255,215,120,.7)'); g.addColorStop(1, 'rgba(255,190,80,0)');
+    x.fillStyle = g; x.fillRect(0, 0, 128, 128);
+  }
+  return canvasTex(c);
+}
+function addChestGlow(model) {
+  const grp = new THREE.Group(); grp.position.set(0, 0.46, 0);
+  const add = { blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, toneMapped: false };
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.36, 1.9, 40, 1, true).translate(0, 0.95, 0),
+    new THREE.MeshBasicMaterial({ map: glowTex('beam'), side: THREE.DoubleSide, opacity: 0, color: 0xffe0a0, ...add }));
+  const core = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex('ball'), opacity: 0, color: 0xfff2c8, ...add }));
+  core.scale.set(1.3, 0.8, 1); core.position.y = 0.05;
+  const light = new THREE.PointLight(0xffc860, 0, 6); light.position.y = 0.2;
+  grp.add(beam, core, light); model.add(grp);
+  return { beam, core, light, grp };
+}
+
 // 模型を中心に寄せて、高さ h にそろえる(落ちてくる大物用)
 function fitModel(src, h) {
   const c = src.clone(true), g = new THREE.Group();
@@ -1933,6 +1961,7 @@ async function applyTheme() {
   const giant = big && fitModel(big, 0.85);
   put(gimmick, giant);
   gimmick.userData.lid = giant?.getObjectByName('lid') || null;
+  gimmick.userData.glow = giant && gimmick.userData.lid ? addChestGlow(giant.children[0]) : null;
   if (th.steps) th.steps.forEach((s) => { new Image().src = `models/icons/${s}.png`; });
   const pv = (id, text) => { const e = document.getElementById(id); if (e) e.textContent = text; };
   pv('pv-l-furi', SHOGI ? '振り駒の「と」' : `${th.toss}の${th.hit}`); pv('pv-l-swarm', th.swarm); pv('pv-l-gim', th.gim);
@@ -1990,6 +2019,16 @@ function updateGimmick(dt) {
     gimmick.rotation.set(0, 0, t < 0.55 ? Math.sin(t * 9) * 0.12 * (1 - t / 0.55) : 0);
     gimmick.scale.setScalar(5.5 * s);
     u.lid.rotation.x = t > 0.65 ? -1.75 * Math.min(1, (t - 0.65) / 0.25) ** 0.6 : 0;
+    if (u.glow) {
+      // ふたが開くのに合わせて光があふれ、ちらちら揺れる。金の粒が立ちのぼる
+      const k = t > 0.65 ? Math.min(1, (t - 0.65) / 0.3) : 0, fl = 0.85 + 0.15 * Math.sin(t * 23) * Math.sin(t * 7);
+      u.glow.beam.material.opacity = 0.75 * k * fl; u.glow.beam.scale.set(1, 0.4 + 0.6 * k, 1);
+      u.glow.core.material.opacity = k * fl; u.glow.light.intensity = 30 * k * fl;
+      if (k > 0) {
+        const wp = u.glow.grp.getWorldPosition(tmpV);
+        for (let i = 0, n = Math.floor(60 * dt + Math.random()); i < n; i++) sparks.emit(wp.x + rand(-1.6, 1.6), wp.y, wp.z + rand(-0.6, 0.6), rand(-0.6, 0.6), rand(3, 7), rand(-0.3, 0.3), AMB.light, rand(0.15, 0.4), rand(0.8, 1.4), 0, 0.98);
+      }
+    }
     if (t > 0.65 && t - dt <= 0.65) { flash('#ffe08a', 0.5, 0.7); sound.kyuin(); }
     return;
   }
@@ -2902,6 +2941,7 @@ function showResult(winner) {
   const l = document.createElement('div'); l.className = 'r-leader';
   l.appendChild(glossy(text || draft.leaders[winner], tier === 3 ? 'silver' : 'gold'));
   t.append(l);
+  if (tier !== 3) { const k = document.createElement('div'); k.className = 'r-kaku'; k.appendChild(glossy('に決定!!', 'red')); t.append(k); }
   // いま当たった候補に印(一覧で外しやすいように)。はずれは候補ではないので付けない
   curSet().last = tier === 3 ? '' : draft.leaders[winner]; saveStore(); renderItems();
   res.classList.add('end');
@@ -3552,9 +3592,9 @@ function renderSetBtn() { $('set-btn').textContent = `${curSet().name} ▾`; }
 function renderSetPanel() {
   const set = curSet();
   $('set-name').value = set.name;
-  $('mode-seg').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === set.mode)));
   $('theme-seg').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === set.theme)));
   $('set-del').disabled = store.sets.length < 2;
+  $('set-del').setAttribute('aria-disabled', String(store.sets.length < 2));
   disarmDel();
 }
 // 組を切り替えたとき: 一覧・盤・隠した状態をその組のものに
@@ -3594,7 +3634,6 @@ $('set-name').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.i
 $('set-name').addEventListener('input', () => { $('set-name-ok').hidden = false; });
 $('set-name').addEventListener('blur', () => { $('set-name-ok').hidden = true; });
 $('theme-seg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b || curSet().theme === b.dataset.v) return; curSet().theme = b.dataset.v; saveStore(); renderSetPanel(); applyTheme(); });
-$('mode-seg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b || curSet().mode === b.dataset.v) return; curSet().mode = b.dataset.v; renderSetPanel(); commit(); });
 $('set-dup').addEventListener('click', () => {
   const x = normSet(JSON.parse(JSON.stringify(curSet())));
   x.id = newId(); x.name = `${x.name} のコピー`.slice(0, 30);
