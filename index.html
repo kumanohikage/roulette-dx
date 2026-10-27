@@ -3392,6 +3392,9 @@ function showResult(winner) {
   l.appendChild(glossy(text || draft.leaders[winner], tier === 3 ? 'silver' : 'gold'));
   t.append(l);
   if (tier !== 3) { const k = document.createElement('div'); k.className = 'r-kaku'; k.appendChild(glossy('に決定!!', 'red')); t.append(k); }
+  // 文字は画像で描くので、読み上げ用に結果を言葉でも持たせる
+  t.setAttribute('role', 'status');
+  t.setAttribute('aria-label', tier === 3 ? draft.leaders[winner] : `${draft.leaders[winner]}に決定`);
   // いま当たった候補に印(一覧で外しやすいように)。はずれは候補ではないので付けない
   curSet().last = tier === 3 ? '' : draft.leaders[winner]; saveStore(); renderItems();
   res.classList.add('end');
@@ -3838,7 +3841,7 @@ function previewPlan(winner, n) {
   };
 }
 
-const VERSION = '1.1.2';
+const VERSION = '1.1.3';
 const IS_DEV = /\/dev\/?$/.test(location.pathname.replace(/index\.html$/, ''));
 $('ver').textContent = `ルーレットDX v${VERSION}${IS_DEV ? '（確認用）' : ''}`;
 if (IS_DEV) {
