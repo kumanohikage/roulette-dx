@@ -4,6 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>ルーレットDX</title>
+<meta name="description" content="魚群・リーチ・流星つきの演出ルーレット。登録なし・無料・ブラウザで動きます。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://kumanohikage.github.io/roulette-dx/">
+<meta property="og:title" content="ルーレットDX">
+<meta property="og:description" content="魚群・リーチ・流星つきの演出ルーレット。登録なし・無料・ブラウザで動きます。">
+<meta property="og:image" content="https://kumanohikage.github.io/roulette-dx/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Noto+Sans+JP:wght@700;900&display=swap" rel="stylesheet">
@@ -3829,7 +3838,7 @@ function previewPlan(winner, n) {
   };
 }
 
-const VERSION = '1.1.1';
+const VERSION = '1.1.2';
 const IS_DEV = /\/dev\/?$/.test(location.pathname.replace(/index\.html$/, ''));
 $('ver').textContent = `ルーレットDX v${VERSION}${IS_DEV ? '（確認用）' : ''}`;
 if (IS_DEV) {
